@@ -5,15 +5,36 @@
 
         &nbsp;
 
-        <q-input filled v-model="email" label="Email" type="email" @keyup.enter="onLogin"></q-input>
-        <q-input filled v-model="password" label="Password" type="password" class="q-mt-md" @keyup.enter="onLogin"></q-input>
+        <form @submit.prevent="onLogin"></form>
+        <q-input 
+        filled v-model="email" 
+        label="Email" 
+        type="email" 
+        @keyup.enter="onLogin"
+        />
 
-        <q-btn label="Login" color="primary" class="full-width q-mt-md" :disable="!email || !password" @click="onLogin"></q-btn>
+        <q-input 
+        filled v-model="password" 
+        label="Password" 
+        type="password" 
+        class="q-mt-md" 
+        />
+
+        <q-btn 
+        label="Login" 
+        color="primary" 
+        class="full-width q-mt-md" 
+        :disable="!email || !password"
+        type="submit"
+        />
 
         <div class="text-center q-mt-md">
               Nemáte ešte účet?
               <div class="sep"></div>
-              <q-btn flat color="primary" label="Zaregistrujte sa" :to="{path: 'register'}"></q-btn>
+              <q-btn 
+              flat color="primary" 
+              label="Zaregistrujte sa" 
+              :to="{path: 'register'}"/>
         </div>
 
     </q-card>
@@ -23,6 +44,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+
 
 const email = ref('')
 const password = ref('')

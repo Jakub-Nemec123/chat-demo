@@ -24,8 +24,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-
-type Channel = { id: number; name: string; type: 'public' | 'private' }
+import type { Channel } from 'src/components/models'
 
 const channels = ref<Channel[]>([
   { id: 1, name: 'general', type: 'public' },
