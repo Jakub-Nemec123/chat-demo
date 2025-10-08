@@ -6,26 +6,22 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
-        path: '',
-        name: 'login', 
+        path: 'signin',
+        name: 'signin',
         component: () => import('pages/IndexPage.vue') },
       {
-        path :'register', 
+        path: 'register',
         name: 'register',
         component: () => import('pages/RegisterPage.vue')},
       {
-        path :'dashboard', 
+        path: '',
         name: 'dashboard',
-        component: () => import('pages/DashboardPage.vue')}
-    
+        component: () => import('pages/DashboardPage.vue')
+      },
     ],
   },
-
-  // Always leave this as last one,
-  // but you can also remove it
   {
     path: '/:catchAll(.*)*',
-    name:'not found',
     component: () => import('pages/ErrorNotFound.vue'),
   },
 ];

@@ -8,10 +8,10 @@ export interface Meta {
 }
 
 export type User = {
-  id: number;
-  name: string;
-  nickname: string;
+  id: number; // todo: change type
   email: string;
+  name: string;
+  username: string;
 }
 
 export type Channel = {
