@@ -44,18 +44,31 @@
 </template>
 
 <script setup lang="ts">
+import { useAuth } from 'src/composables/useAuth';
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 
 
 const email = ref('')
 const password = ref('')
+const loading = ref(false)
+const error = ref('')
 
 const router = useRouter()
+const route = useRoute()
+const auth = useAuth()
 
 async function onLogin(){
-  if (email.value === 'test@test.sk' && password.value === 'test'){
-    await router.push({name: 'dashboard'})
+  loading.value = true
+  error.value = ''
+   try {
+    auth.loginWithCredentials(email.value, password.value)
+    const redirect = (route.query.redirect as string) || { name: 'dashboard' }
+    await router.replace(redirect)
+  } catch  {
+    error.value = 'Prihlásenie zlyhalo'
+  } finally {
+    loading.value = false
   }
 }
 </script>

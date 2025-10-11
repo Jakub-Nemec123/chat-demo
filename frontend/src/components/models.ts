@@ -8,7 +8,7 @@ export interface Meta {
 }
 
 export type User = {
-  id: number; // todo: change type
+  id: string; // string for UUID
   email: string;
   name: string;
   username: string;
