@@ -5,7 +5,7 @@
 
         &nbsp;
 
-        <form @submit.prevent="onLogin"></form>
+        <form @submit.prevent="onLogin">
         <q-input 
         filled v-model="email" 
         label="Email" 
@@ -18,6 +18,7 @@
         label="Password" 
         type="password" 
         class="q-mt-md" 
+        @keyup.enter="onLogin"
         />
 
         <q-btn 
@@ -26,8 +27,9 @@
         class="full-width q-mt-md" 
         :disable="!email || !password"
         type="submit"
+        @click="onLogin"
         />
-
+        </form>
         <div class="text-center q-mt-md">
               Nemáte ešte účet?
               <div class="sep"></div>
@@ -36,7 +38,7 @@
               label="Zaregistrujte sa" 
               :to="{path: 'register'}"/>
         </div>
-
+      
     </q-card>
   </q-page>
 </template>
@@ -53,7 +55,7 @@ const router = useRouter()
 
 async function onLogin(){
   if (email.value === 'test@test.sk' && password.value === 'test'){
-    await router.push('/dashboard')
+    await router.push({name: 'dashboard'})
   }
 }
 </script>
