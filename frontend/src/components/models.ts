@@ -1,3 +1,5 @@
+type ID = string; // could be of any structure
+
 export interface Todo {
   id: number;
   content: string;
@@ -8,7 +10,7 @@ export interface Meta {
 }
 
 export type User = {
-  id: string; // string for UUID
+  id: ID;
   email: string;
   name: string;
   username: string;

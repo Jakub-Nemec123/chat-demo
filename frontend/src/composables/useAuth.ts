@@ -43,8 +43,9 @@ function bootstrapFromStorage() {
   }
 }
 
-function loginWithCredentials(username: string, password: string) {
-  if (!(username === 'test' && password === 'test')) {
+function loginWithCredentials(email: string, password: string) {
+  // make it valid
+  if (!(email === 'test@example.com' && password === 'test')) {
     throw new Error('Nesprávny username alebo heslo')
   }
 
