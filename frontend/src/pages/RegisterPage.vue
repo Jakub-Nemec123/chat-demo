@@ -6,89 +6,99 @@
     >
       <h1 class="text-h5 q-mb-lg">Create an account</h1>
       <q-form ref="form" @submit.prevent="onRegister">
-          <q-input
-            class="q-mb-sm"
-            filled
-            label="Full name"
-            name="fullName"
-            required
-            :rules="[
-              (val) => !!val || 'Name is required',
-            ]"
-            type="text"
-            v-model="formData.fullName"
-          />
-          <q-input
-            class="q-mb-sm"
-            filled
-            label="Username"
-            name="username"
+        <q-input
+          class="q-mb-sm"
+          filled
+          label="First name"
+          name="name[first]"
+          required
+          :rules="[
+            (val) => !!val || 'Name is required',
+          ]"
+          type="text"
+          v-model="formData.name.first"
+        />
+        <q-input
+          class="q-mb-sm"
+          filled
+          label="Last name"
+          name="name[last]"
+          required
+          :style="{ paddingBottom: '20px' }"
+          type="text"
+          v-model="formData.name.last"
+        />
+        <q-input
+          class="q-mb-sm"
+          filled
+          label="Username"
+          name="username"
           prefix="@"
-            required
-            :rules="[
-              (val) => !!val || 'Username is required',
-            ]"
-            type="text"
-            v-model="formData.username"
-          />
-          <q-input
-            class="q-mb-sm"
-            filled
-            label="Email"
-            lazy-rules
-            name="email"
-            required
-            :rules="[
-              (val) => !!val || 'Email is required',
-              (val) => val.indexOf('@') !== -1 || 'Email is not valid',
-            ]"
-            type="email"
-            v-model="formData.email"
-          />
-          <q-input
-            class="q-mb-sm"
-            filled
-            label="Password"
-            name="password"
-            required
-            :rules="[
-              (val) => !!val || 'Password is required',
-            ]"
-            type="password"
-            v-model="formData.password"
-          />
-          <q-input
-            class="q-mb-sm"
-            filled
-            label="Password (again)"
-            lazy-rules
-            name="passwordRepeat"
-            required
-            :rules="[
-              (val) => (
-                (!!val && val === formData.password)
-                || 'Passwords don’t match'
-              ),
-            ]"
-            type="password"
-            v-model="formData.passwordRepeat"
-          />
-          <q-btn
-            color="primary"
+          required
+          :rules="[
+            (val) => !!val || 'Username is required',
+          ]"
+          type="text"
+          v-model="formData.username"
+        />
+        <q-input
+          class="q-mb-sm"
+          filled
+          label="Email"
+          lazy-rules
+          name="email"
+          required
+          :rules="[
+            (val) => !!val || 'Email is required',
+            (val) => val.indexOf('@') !== -1 || 'Email is not valid',
+          ]"
+          type="email"
+          v-model="formData.email"
+        />
+        <q-input
+          class="q-mb-sm"
+          filled
+          label="Password"
+          name="password"
+          required
+          :rules="[
+            (val) => !!val || 'Password is required',
+          ]"
+          type="password"
+          v-model="formData.password"
+        />
+        <q-input
+          class="q-mb-sm"
+          filled
+          label="Password (again)"
+          lazy-rules
+          name="passwordRepeat"
+          required
+          :rules="[
+            (val) => (
+              (!!val && val === formData.password)
+              || 'Passwords don’t match'
+            ),
+          ]"
+          type="password"
+          v-model="formData.passwordRepeat"
+        />
+        <q-btn
+          color="primary"
           class="full-width"
-            label="Create account"
-            type="submit"
-          />
-        </q-form>
+          label="Create account"
+          type="submit"
+        />
+      </q-form>
       <p class="q-mt-md">
-          Already have an account?
-          <q-btn
-            color="primary"
-            flat
-            label="Sign in"
-            :to="{ name: 'login' }"
-          />
-        </p>
+        Already have an account?
+        <q-btn
+          color="primary"
+          flat
+          label="Sign in"
+          :to="{ name: 'login' }"
+        />
+      </p>
     </q-card>
   </q-page>
 </template>
@@ -100,7 +110,10 @@ import { useRouter } from 'vue-router';
 
 type FormData = {
   email: string;
-  fullName: string;
+  name: {
+    first: string;
+    last: string;
+  };
   username: string;
   password: string;
   passwordRepeat: string;
@@ -109,7 +122,10 @@ type FormData = {
 const form = ref<QForm>();
 const formData = ref<FormData>({
   email: '',
-  fullName: '',
+  name: {
+    first: '',
+    last: '',
+  },
   username: '',
   password: '',
   passwordRepeat: '',
