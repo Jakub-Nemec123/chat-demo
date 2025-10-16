@@ -1,9 +1,11 @@
 <template>
-  <q-page class="hero-bg flex flex-center">
-    <q-card class="q-pa-lg" style="max-width: 430px; width: 100%;">
-      <div class="text-center q-mb-md">
-        <h1 class="text-h5">Create an account</h1>
-        <q-form ref="form" @submit="onRegister">
+  <q-page>
+    <q-card
+      class="full-width q-pa-lg text-center"
+      :style="{ maxWidth: '30rem' }"
+    >
+      <h1 class="text-h5 q-mb-lg">Create an account</h1>
+      <q-form ref="form" @submit.prevent="onRegister">
           <q-input
             class="q-mb-sm"
             filled
@@ -21,6 +23,7 @@
             filled
             label="Username"
             name="username"
+          prefix="@"
             required
             :rules="[
               (val) => !!val || 'Username is required',
@@ -72,13 +75,12 @@
           />
           <q-btn
             color="primary"
-            class="full-width q-mt-md"
+          class="full-width"
             label="Create account"
             type="submit"
           />
         </q-form>
-        <hr />
-        <p>
+      <p class="q-mt-md">
           Already have an account?
           <q-btn
             color="primary"
@@ -87,7 +89,6 @@
             :to="{ name: 'login' }"
           />
         </p>
-      </div>
     </q-card>
   </q-page>
 </template>

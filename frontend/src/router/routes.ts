@@ -16,8 +16,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '',
-    // future todo: change layout
-    component: () => import('layouts/MainLayout.vue'),
+    component: () => import('layouts/AuthLayout.vue'),
     children: [
       {
         path: 'signin',
