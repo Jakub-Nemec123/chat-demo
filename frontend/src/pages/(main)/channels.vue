@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { Channel } from 'src/components/models'
+import type { Channel } from 'src/models'
 import { useRouter } from 'vue-router'
 import { useAuth } from 'src/composables/useAuth'
 
