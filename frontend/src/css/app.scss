@@ -1,7 +1,16 @@
-// app global css in SCSS form
-.q-card{
-    box-shadow: none;
-    border: 1px solid rgba(188, 117, 255, 0.4);
-    box-shadow: 0 0 8px rgba(188, 117, 255, 0.6);
-    border-radius: 12px;
+.hero-bg {
+  background: #5908c9;
+  background: linear-gradient(
+    5deg,
+    rgb(12, 4, 31) 0%,
+    rgb(89, 32, 122) 60%,
+    rgb(120, 0, 194) 100%
+  );
+}
+
+.q-card {
+  box-shadow: none;
+  border: 1px solid rgba(188, 117, 255, 0.4);
+  box-shadow: 0 0 8px rgba(188, 117, 255, 0.6);
+  border-radius: 12px;
 }

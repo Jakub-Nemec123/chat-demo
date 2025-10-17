@@ -11,7 +11,7 @@ export default function authGuard(
 
   // todo: probably do that in the `useAuth` function
   if (!auth.state.token && !auth.state.currentUser) {
-    auth.bootstrapFromStorage()
+    auth.bootstrapFromStorage();
   }
 
   if (auth.isAuthenticated.value) {

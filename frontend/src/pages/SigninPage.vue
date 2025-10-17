@@ -72,11 +72,3 @@ async function onLogin(){
   }
 }
 </script>
-
-<style>
-.hero-bg {
-background: #5908c9;
-background: linear-gradient(05deg, rgb(12, 4, 31) 0%, rgb(89, 32, 122) 60%, rgb(120, 0, 194) 100%);}
-
-
-</style>d
