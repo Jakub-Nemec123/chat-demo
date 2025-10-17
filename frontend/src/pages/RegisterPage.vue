@@ -5,29 +5,30 @@
       :style="{ maxWidth: '30rem' }"
     >
       <h1 class="text-h5 q-mb-lg">Create an account</h1>
-      <q-form ref="form" @submit.prevent="onRegister">
-        <q-input
-          class="q-mb-sm"
-          filled
-          label="First name"
-          name="name[first]"
-          required
-          :rules="[
-            (val) => !!val || 'Name is required',
-          ]"
-          type="text"
-          v-model="formData.name.first"
-        />
-        <q-input
-          class="q-mb-sm"
-          filled
-          label="Last name"
-          name="name[last]"
-          required
-          :style="{ paddingBottom: '20px' }"
-          type="text"
-          v-model="formData.name.last"
-        />
+      <q-form ref="form" @submit.prevent="onSubmit">
+        <div class="q-gutter-sm row">
+          <q-input
+            class="col q-mb-sm"
+            filled
+            label="First name"
+            name="name[first]"
+            required
+            :rules="[
+              (val) => !!val || 'Name is required',
+            ]"
+            type="text"
+            v-model="formData.name.first"
+          />
+          <q-input
+            class="col q-mb-sm"
+            filled
+            label="Last name"
+            name="name[last]"
+            :style="{ paddingBottom: '20px' }"
+            type="text"
+            v-model="formData.name.last"
+          />
+        </div>
         <q-input
           class="q-mb-sm"
           filled
@@ -96,7 +97,7 @@
           color="primary"
           flat
           label="Sign in"
-          :to="{ name: 'login' }"
+          :to="{ name: 'sign.in' }"
         />
       </p>
     </q-card>
@@ -104,11 +105,13 @@
 </template>
 
 <script setup lang="ts">
-import { QForm } from 'quasar';
 import { ref } from 'vue';
+import { QForm } from 'quasar';
 import { useRouter } from 'vue-router';
+import type { Router } from 'vue-router';
 
-type FormData = {
+const form = ref<QForm>();
+const formData = ref<{
   email: string;
   name: {
     first: string;
@@ -117,10 +120,7 @@ type FormData = {
   username: string;
   password: string;
   passwordRepeat: string;
-};
-
-const form = ref<QForm>();
-const formData = ref<FormData>({
+}>({
   email: '',
   name: {
     first: '',
@@ -131,8 +131,8 @@ const formData = ref<FormData>({
   passwordRepeat: '',
 });
 
-const router = useRouter();
-async function onRegister() {
+async function onSubmit() {
+  const router: Router = useRouter();
   await router.push({ name: 'dashboard' });
 }
 </script>
