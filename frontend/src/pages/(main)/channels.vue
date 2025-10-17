@@ -3,15 +3,27 @@
     <!-- kanaly -->
     <aside class="channels q-pa-md">
     <div class="channel-list">
-      <button
-        v-for="ch in channels"
-        :key="ch.id"
-        class="channel-btn"
-        :class="{ active: ch.id === currentChannelId }"
-        @click="selectChannel(ch.id)"
+      <router-link
+        custom
+        :key="channel.id"
+        v-for="channel in channels"
+        v-slot="{ href, isActive }"
+        :to="{
+          name: 'channels.[channel]',
+          params: {
+            channel: channel.name,
+          },
+        }"
       >
-        # {{ ch.name }}
-      </button>
+        <q-btn
+          align="left"
+          :color="isActive ? 'primary' : 'none'"
+          :label="'# ' + channel.name"
+          no-caps
+          :to="href"
+          unelevated
+        />
+      </router-link>
     </div>
 
     <div class="userbar" v-if="auth.state.currentUser">
@@ -45,15 +57,13 @@
 
   <!-- chat -->
     <aside class="chat">
-      <div class="q-pa-md text-h6">
-        Aktuálny kanál: {{ currentChannelName }}
-      </div>
+      <router-view />
     </aside>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import type { Channel } from 'src/models'
 import { useRouter } from 'vue-router'
 import { useAuth } from 'src/composables/useAuth'
@@ -62,16 +72,6 @@ const channels = ref<Channel[]>([
   { id: 1, name: 'general', type: 'public' },
   { id: 2, name: 'lobby', type: 'public' }
 ])
-
-const currentChannelId = ref<number | null>(channels.value[0]?.id ?? null)
-
-function selectChannel(id: number) {
-  currentChannelId.value = id
-}
-
-const currentChannelName = computed(
-  () => channels.value.find(c => c.id === currentChannelId.value)?.name ?? ''
-)
 
 const router = useRouter()
 const auth = useAuth()

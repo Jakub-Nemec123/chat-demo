@@ -42,6 +42,13 @@ declare module 'vue-router/auto-routes' {
       '/channels',
       Record<never, never>,
       Record<never, never>,
+      | 'channels.[channel]'
+    >,
+    'channels.[channel]': RouteRecordInfo<
+      'channels.[channel]',
+      '/channels/:channel',
+      { channel: ParamValue<true> },
+      { channel: ParamValue<false> },
       | never
     >,
     '[...path]': RouteRecordInfo<
@@ -86,12 +93,20 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(main).vue': {
       routes:
         | 'channels'
+        | 'channels.[channel]'
       views:
         | 'default'
     }
     'src/pages/(main)/channels.vue': {
       routes:
         | 'channels'
+        | 'channels.[channel]'
+      views:
+        | 'default'
+    }
+    'src/pages/(main)/channels/[channel].vue': {
+      routes:
+        | 'channels.[channel]'
       views:
         | never
     }
