@@ -1,44 +1,43 @@
 <template>
-  <q-page class="hero-bg flex flex-center">
-    <q-card class="q-pa-lg" style="max-width: 430px; width: 100%;">
-        <div class="text-h5 text-center">Login</div>
-
-        &nbsp;
-
-        <form @submit.prevent="onLogin">
-        <q-input 
-        filled v-model="email" 
-        label="Email" 
-        type="email" 
-        @keyup.enter="onLogin"
+  <q-page>
+    <q-card
+      class="full-width q-pa-lg text-center"
+      :style="{ maxWidth: '30rem' }"
+    >
+      <h1 class="text-h5 q-mb-lg">Sign in</h1>
+      <q-form @submit.prevent="onSubmit">
+        <q-input
+          class="q-my-md"
+          filled
+          label="Email"
+          required
+          type="email"
+          v-model="formData.email"
         />
-
-        <q-input 
-        filled v-model="password" 
-        label="Password" 
-        type="password" 
-        class="q-mt-md" 
-        @keyup.enter="onLogin"
+        <q-input
+          class="q-my-md"
+          filled
+          label="Password"
+          required
+          type="password"
+          v-model="formData.password"
         />
-
-        <q-btn 
-        label="Login" 
-        color="primary" 
-        class="full-width q-mt-md" 
-        :disable="!email || !password"
-        type="submit"
-        @click="onLogin"
+        <q-btn
+          color="primary"
+          class="full-width"
+          label="Sign in"
+          type="submit"
         />
-        </form>
-        <div class="text-center q-mt-md">
-              Nemáte ešte účet?
-              <div class="sep"></div>
-              <q-btn 
-              flat color="primary" 
-              label="Zaregistrujte sa" 
-              :to="{path: 'register'}"/>
-        </div>
-      
+      </q-form>
+      <p class="q-mt-md">
+        Don’t have an account yet?
+        <q-btn
+          color="primary"
+          flat
+          label="Sign up"
+          :to="{ name: 'sign.up' }"
+        />
+      </p>
     </q-card>
   </q-page>
 </template>
@@ -48,9 +47,14 @@ import { useAuth } from 'src/composables/useAuth';
 import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
+const formData = ref<{
+  email: string;
+  password: string;
+}>({
+  email: '',
+  password: '',
+});
 
-const email = ref('')
-const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
@@ -58,11 +62,11 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuth()
 
-async function onLogin(){
+async function onSubmit() {
   loading.value = true
   error.value = ''
    try {
-    auth.loginWithCredentials(email.value, password.value)
+    auth.loginWithCredentials(formData.value.email, formData.value.password)
     const redirect = (route.query.redirect as string) || { name: 'dashboard' }
     await router.replace(redirect)
   } catch  {
