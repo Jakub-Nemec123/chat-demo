@@ -1,11 +1,13 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="hHh Lpr lff">
     <q-header elevated>
       <q-toolbar>
-        <q-toolbar-title> Quasar App </q-toolbar-title>
-        <div>Quasar v{{ $q.version }}</div>
+        <q-toolbar-title>Quasar App</q-toolbar-title>
       </q-toolbar>
     </q-header>
+    <q-drawer no-swipe-open persistent show-if-above side="left">
+      <router-view name="sidebar" />
+    </q-drawer>
     <q-page-container>
       <router-view />
     </q-page-container>

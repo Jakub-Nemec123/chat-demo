@@ -96,8 +96,16 @@ declare module 'vue-router/auto-routes' {
         | 'channels.[channel]'
       views:
         | 'default'
+        | 'sidebar'
     }
     'src/pages/(main)/channels.vue': {
+      routes:
+        | 'channels'
+        | 'channels.[channel]'
+      views:
+        | 'default'
+    }
+    'src/pages/(main)/channels@sidebar.vue': {
       routes:
         | 'channels'
         | 'channels.[channel]'

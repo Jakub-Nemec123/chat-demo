@@ -74,5 +74,14 @@ export default defineConfigWithVueTs(
     },
   },
 
+  {
+    files: [
+      'src/pages/**/*.vue',
+    ],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
   prettierSkipFormatting,
 );
