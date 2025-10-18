@@ -3,7 +3,7 @@ import authGuard from 'src/router/guards/authGuard';
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '',
+    path: '/',
     component: () => import('layouts/MainLayout.vue'),
     beforeEnter: [authGuard],
     children: [
@@ -15,21 +15,20 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: '',
-    // future todo: change layout
-    component: () => import('layouts/MainLayout.vue'),
+    component: () => import('layouts/AuthLayout.vue'),
     children: [
       {
-        path: 'signin',
-        name: 'signin',
-        component: () => import('pages/SigninPage.vue')
+        component: () => import('pages/SigninPage.vue'),
+        name: 'sign.in',
+        path: 'in',
       },
       {
-        path: 'register',
-        name: 'register',
-        component: () => import('pages/RegisterPage.vue')
+        component: () => import('pages/RegisterPage.vue'),
+        name: 'sign.up',
+        path: 'up',
       },
     ],
+    path: '/sign',
   },
   {
     path: '/:catchAll(.*)*',
