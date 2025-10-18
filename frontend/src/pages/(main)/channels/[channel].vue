@@ -1,6 +1,9 @@
 <template>
   <q-page class="column">
-    <div class="col-grow q-px-md" v-if="'channel' in $route.params">
+    <div
+      class="col-grow column reverse q-px-md scroll-vertical"
+      v-if="'channel' in $route.params"
+    >
       <p>Aktuálny kanál: {{ $route.params.channel }}</p>
       <channel-message />
       <channel-message />

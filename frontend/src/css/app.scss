@@ -14,3 +14,10 @@
   box-shadow: 0 0 8px rgba(188, 117, 255, 0.6);
   border-radius: 12px;
 }
+
+// used in conjuction with flex items in order to make it scrollable
+.col-grow.scroll-vertical {
+  flex-wrap: nowrap;
+  height: 0 !important;
+  overflow-y: auto;
+}
