@@ -98,7 +98,7 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/(main).vue': {
+    'src/pages/(workspace).vue': {
       routes:
         | 'channels'
         | 'channels.[channel]'
@@ -107,7 +107,7 @@ declare module 'vue-router/auto-routes' {
         | 'default'
         | 'sidebar'
     }
-    'src/pages/(main)/channels.vue': {
+    'src/pages/(workspace)/channels.vue': {
       routes:
         | 'channels'
         | 'channels.[channel]'
@@ -115,7 +115,7 @@ declare module 'vue-router/auto-routes' {
       views:
         | 'default'
     }
-    'src/pages/(main)/channels@sidebar.vue': {
+    'src/pages/(workspace)/channels@sidebar.vue': {
       routes:
         | 'channels'
         | 'channels.[channel]'
@@ -123,13 +123,13 @@ declare module 'vue-router/auto-routes' {
       views:
         | 'default'
     }
-    'src/pages/(main)/channels/index.vue': {
+    'src/pages/(workspace)/channels/index.vue': {
       routes:
         | 'channels.index'
       views:
         | never
     }
-    'src/pages/(main)/channels/[channel].vue': {
+    'src/pages/(workspace)/channels/[channel].vue': {
       routes:
         | 'channels.[channel]'
       views:
