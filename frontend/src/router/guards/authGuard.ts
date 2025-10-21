@@ -19,7 +19,7 @@ export default function authGuard(
   }
 
   return {
-    name: 'signin',
+    name: 'sign.in',
     query: {
       redirect: to.fullPath
     }
