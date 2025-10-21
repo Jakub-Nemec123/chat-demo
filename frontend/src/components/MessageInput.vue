@@ -1,9 +1,9 @@
 <template>
-  <div>
+  <div :style="{ contain: 'layout' }">
     <!-- TODO: render on client only -->
     <div
       class="absolute bg-black q-pa-md"
-      :style="{ bottom: formEdge }"
+      :style="testProperty"
     >
       <p class="text-bold">Commands:</p>
       <pre>
@@ -35,17 +35,23 @@
 </template>
 
 <script setup lang="ts">
-import { dom } from 'quasar';
+// import { reactive, ref } from 'vue';
 import { computed, ref } from 'vue';
 import type { Ref } from 'vue';
+import { useElementBounding, useWindowSize } from '@vueuse/core';
 
 const message: Ref<string> = ref<string>('');
 
 const formElement = ref();
+
+const bounding = useElementBounding(formElement);
+const size = useWindowSize();
+const testProperty = computed(() => ({
+  // todo: fix some hacks
+  bottom: `${size.height.value - bounding.top.value}px`,
+  marginBottom: '-1em',
+}));
+
 // TODO: convert into separate component and calculations
 // TODO: fix this so it can work (vm.$nextTick, and wait until rendered)
-const formEdge = computed<number | undefined>(() => {
-  if (!formElement.value) return 0;
-  return window.innerHeight - formElement.value?.offsetTop;
-});
 </script>
