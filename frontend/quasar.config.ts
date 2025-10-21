@@ -2,6 +2,7 @@
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
 import { defineConfig } from '#q-app/wrappers';
+import type { TreeNode } from 'unplugin-vue-router';
 
 export default defineConfig((/* ctx */) => {
   return {
@@ -40,10 +41,13 @@ export default defineConfig((/* ctx */) => {
       typescript: {
         strict: true,
         vueShim: true,
-        // extendTsConfig (tsConfig) {}
+        extendTsConfig(tsConfig) {
+          tsConfig.include?.push('./typed-router.d.ts');
+          // tsConfig.compilerOptions?.moduleResolution
+        },
       },
 
-      vueRouterMode: 'history', // available values: 'hash', 'history'
+      vueRouterMode: 'history',
       // vueRouterBase,
       // vueDevtools,
       // vueOptionsAPI: false,
@@ -63,6 +67,36 @@ export default defineConfig((/* ctx */) => {
       // viteVuePluginOptions: {},
 
       vitePlugins: [
+        [
+          'unplugin-vue-router/vite',
+          {
+            getRouteName(node: TreeNode): string {
+              // create path through segments in the group
+              const path: string[] = [];
+
+              // iterate through segments in the group
+              for (
+                let currNode: TreeNode | undefined = node;
+                currNode?.parent !== undefined;
+                currNode = currNode.parent
+              ) {
+                // filter index out of segments
+                let segment: string = currNode.value.rawSegment;
+                segment = segment !== 'index' ? segment : '';
+
+                // the segment must not be empty
+                // and the segment must not be a group
+                if (segment && !currNode.value.isGroup()) {
+                  path.unshift(segment);
+                }
+              }
+
+              // if the route name is empty, the route
+              // will not be included
+              return path.join('.');
+            }
+          },
+        ],
         [
           'vite-plugin-checker',
           {

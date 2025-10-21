@@ -24,15 +24,15 @@
         </div>
 
         <div class="q-gutter-x-sm">
-          <q-btn 
-          dense flat icon="settings" 
-          @click="handleSettings" 
+          <q-btn
+          dense flat icon="settings"
+          @click="handleSettings"
           aria-label="Nastavenia"
           />
 
-          <q-btn 
-          dense flat icon="logout" 
-          @click="handleLogout" 
+          <q-btn
+          dense flat icon="logout"
+          @click="handleLogout"
           aria-label="Logout"
           />
 
@@ -58,7 +58,6 @@ import type { Channel } from 'src/components/models'
 import { useRouter } from 'vue-router'
 import { useAuth } from 'src/composables/useAuth'
 
-
 const channels = ref<Channel[]>([
   { id: 1, name: 'general', type: 'public' },
   { id: 2, name: 'lobby', type: 'public' }
@@ -78,12 +77,12 @@ const router = useRouter()
 const auth = useAuth()
 
 async function handleSettings(){
-  await router.push({name: 'dashboard'})
+  await router.push({name: 'channels'})
 }
 
 async function handleLogout(){
   auth.logout()
-  await router.replace({name: 'signin'})
+  await router.replace({name: 'sign.in'})
 }
 </script>
 
@@ -201,4 +200,3 @@ async function handleLogout(){
   color: white;
 }
 </style>
- 

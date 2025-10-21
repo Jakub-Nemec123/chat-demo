@@ -6,18 +6,6 @@ import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescri
 import prettierSkipFormatting from '@vue/eslint-config-prettier/skip-formatting';
 
 export default defineConfigWithVueTs(
-  {
-    /**
-     * Ignore the following files.
-     * Please note that pluginQuasar.configs.recommended() already ignores
-     * the "node_modules" folder for you (and all other Quasar project
-     * relevant folders and files).
-     *
-     * ESLint requires "ignores" key to be the only one in this object
-     */
-    // ignores: []
-  },
-
   pluginQuasar.configs.recommended(),
   js.configs.recommended,
 
@@ -43,7 +31,6 @@ export default defineConfigWithVueTs(
   },
   // https://github.com/vuejs/eslint-config-typescript
   vueTsConfigs.recommendedTypeChecked,
-
   {
     languageOptions: {
       ecmaVersion: 'latest',
@@ -52,12 +39,12 @@ export default defineConfigWithVueTs(
       globals: {
         ...globals.browser,
         ...globals.node, // SSR, Electron, config files
-        process: 'readonly', // process.env.*
-        ga: 'readonly', // Google Analytics
-        cordova: 'readonly',
+        browser: 'readonly', // BEX related
         Capacitor: 'readonly',
         chrome: 'readonly', // BEX related
-        browser: 'readonly', // BEX related
+        cordova: 'readonly',
+        ga: 'readonly', // Google Analytics
+        process: 'readonly', // process.env.*
       },
     },
 
@@ -76,6 +63,14 @@ export default defineConfigWithVueTs(
       globals: {
         ...globals.serviceworker,
       },
+    },
+  },
+  {
+    files: [
+      'src/pages/**/*.vue',
+    ],
+    rules: {
+      'vue/multi-word-component-names': 'off',
     },
   },
 

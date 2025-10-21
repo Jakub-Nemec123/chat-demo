@@ -133,6 +133,6 @@ const formData = ref<{
 
 async function onSubmit() {
   const router: Router = useRouter();
-  await router.push({ name: 'dashboard' });
+  await router.push({ name: 'channels' });
 }
 </script>

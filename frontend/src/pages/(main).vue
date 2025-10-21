@@ -11,3 +11,11 @@
     </q-page-container>
   </q-layout>
 </template>
+
+<script setup lang="ts">
+definePage({
+  meta: {
+    requiresAuth: true,
+  },
+});
+</script>

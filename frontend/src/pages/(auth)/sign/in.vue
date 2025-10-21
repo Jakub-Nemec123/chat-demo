@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import { useAuth } from 'src/composables/useAuth';
 import { ref } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 
 const formData = ref<{
   email: string;
@@ -59,7 +59,7 @@ const loading = ref(false)
 const error = ref('')
 
 const router = useRouter()
-const route = useRoute()
+// const route = useRoute()
 const auth = useAuth()
 
 async function onSubmit() {
@@ -67,8 +67,8 @@ async function onSubmit() {
   error.value = ''
    try {
     auth.loginWithCredentials(formData.value.email, formData.value.password)
-    const redirect = (route.query.redirect as string) || { name: 'dashboard' }
-    await router.replace(redirect)
+    // const redirect = (route.query.redirect as string) || { name: 'channels' };
+    await router.replace({ name: 'channels' })
   } catch  {
     error.value = 'Prihlásenie zlyhalo'
   } finally {

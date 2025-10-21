@@ -1,37 +1,55 @@
 import { defineRouter } from '#q-app/wrappers';
+import { handleHotUpdate, routes } from 'vue-router/auto-routes';
+import type { Router, RouterHistory } from 'vue-router';
 import {
   createMemoryHistory,
   createRouter,
   createWebHashHistory,
   createWebHistory,
 } from 'vue-router';
-import routes from './routes';
+import { useAuth } from 'src/composables/useAuth';
 
-/*
- * If not building with SSR mode, you can
- * directly export the Router instantiation;
- *
- * The function below can be async too; either use
- * async/await or return a Promise which resolves
- * with the Router instance.
- */
+const historyFunction: (base?: string) => RouterHistory = (() => {
+  if (process.env.SERVER) {
+    return createMemoryHistory;
+  }
 
-export default defineRouter(function (/* { store, ssrContext } */) {
-  const createHistory = process.env.SERVER
-    ? createMemoryHistory
-    : process.env.VUE_ROUTER_MODE === 'history'
-      ? createWebHistory
-      : createWebHashHistory;
+  if (process.env.VUE_ROUTER_MODE === 'history') {
+    return createWebHistory;
+  }
 
-  const Router = createRouter({
+  return createWebHashHistory;
+})();
+
+export default defineRouter((): Router => {
+  const router: Router = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),
     routes,
-
-    // Leave this as is and make changes in quasar.conf.js instead!
-    // quasar.conf.js -> build -> vueRouterMode
-    // quasar.conf.js -> build -> publicPath
-    history: createHistory(process.env.VUE_ROUTER_BASE),
+    history: historyFunction(process.env.VUE_ROUTER_BASE),
   });
 
-  return Router;
+  router.beforeEach((to) => {
+    const auth = useAuth();
+
+    if (!auth.state.token && !auth.state.currentUser) {
+      auth.bootstrapFromStorage();
+    }
+
+    // todo: add types
+    if (to.meta.requiresAuth && !auth.isAuthenticated.value) {
+      return {
+        name: 'sign.in',
+        query: {
+          // todo: security
+          redirect: to.fullPath,
+        },
+      };
+    }
+  });
+
+  if (import.meta.hot) {
+    handleHotUpdate(router);
+  }
+
+  return router;
 });
