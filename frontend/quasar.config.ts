@@ -80,9 +80,7 @@ export default defineConfig((/* ctx */) => {
                 currNode?.parent !== undefined;
                 currNode = currNode.parent
               ) {
-                // filter index out of segments
-                let segment: string = currNode.value.rawSegment;
-                segment = segment !== 'index' ? segment : '';
+                const segment: string = currNode.value.rawSegment;
 
                 // the segment must not be empty
                 // and the segment must not be a group

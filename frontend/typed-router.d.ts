@@ -43,6 +43,14 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       Record<never, never>,
       | 'channels.[channel]'
+      | 'channels.index'
+    >,
+    'channels.index': RouteRecordInfo<
+      'channels.index',
+      '/channels',
+      Record<never, never>,
+      Record<never, never>,
+      | never
     >,
     'channels.[channel]': RouteRecordInfo<
       'channels.[channel]',
@@ -94,6 +102,7 @@ declare module 'vue-router/auto-routes' {
       routes:
         | 'channels'
         | 'channels.[channel]'
+        | 'channels.index'
       views:
         | 'default'
         | 'sidebar'
@@ -102,6 +111,7 @@ declare module 'vue-router/auto-routes' {
       routes:
         | 'channels'
         | 'channels.[channel]'
+        | 'channels.index'
       views:
         | 'default'
     }
@@ -109,8 +119,15 @@ declare module 'vue-router/auto-routes' {
       routes:
         | 'channels'
         | 'channels.[channel]'
+        | 'channels.index'
       views:
         | 'default'
+    }
+    'src/pages/(main)/channels/index.vue': {
+      routes:
+        | 'channels.index'
+      views:
+        | never
     }
     'src/pages/(main)/channels/[channel].vue': {
       routes:

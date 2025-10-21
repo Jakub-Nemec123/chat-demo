@@ -5,3 +5,9 @@
     </q-page-container>
   </q-layout>
 </template>
+
+<script setup lang="ts">
+definePage({
+  name: false,
+})
+</script>

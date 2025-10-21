@@ -19,5 +19,6 @@ definePage({
   meta: {
     requiresAuth: true,
   },
+  name: false,
 });
 </script>

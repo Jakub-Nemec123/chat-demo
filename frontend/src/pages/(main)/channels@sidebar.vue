@@ -81,7 +81,7 @@ const router = useRouter()
 const auth = useAuth()
 
 async function handleSettings(){
-  await router.push({name: 'channels'})
+  await router.push({name: 'channels.index'})
 }
 
 async function handleLogout(){
