@@ -1,12 +1,13 @@
 type ID = string; // could be of any structure
 
-export interface Meta {
-  totalCount: number;
+export interface Command {
+  arguments?: CommandArgument[];
+  callable: string;
 }
 
-export interface Command {
+export interface CommandArgument {
   name: string;
-  arguments: string[];
+  required?: boolean;
 }
 
 export interface Channel {
