@@ -1,16 +1,18 @@
 <template>
   <div class="q-my-md">
-    <p class="q-my-none text-bold">@username</p>
+    <p class="q-my-none text-bold">@{{ message.author.username }}</p>
     <p
       class="q-my-none"
       :style="{ whiteSpace: 'pre-wrap' }"
-      v-text="text"
+      v-text="message.message"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import type { Message } from 'src/models';
 
-const text = ref<string>(`ExampleExampleExampleExample\n\nExample`);
+defineProps<{
+  message: Message
+}>()
 </script>

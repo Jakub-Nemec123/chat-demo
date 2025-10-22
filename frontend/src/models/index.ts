@@ -21,6 +21,12 @@ export enum ChannelPrivacy {
   private = 'private',
 }
 
+export interface Message {
+  id: ID;
+  author: User;
+  message: string;
+}
+
 export interface User {
   id: ID;
   email: string;
