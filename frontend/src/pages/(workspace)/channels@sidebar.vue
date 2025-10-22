@@ -1,7 +1,15 @@
 <template>
-   <!-- kanaly -->
-    <aside class="channels q-pa-md">
-    <div class="channel-list">
+  <aside class="bg-black column full-height">
+    <div
+      class="
+        col-grow
+        column
+        q-px-md
+        q-py-lg
+        q-gutter-sm
+        scroll-vertical
+      "
+    >
       <router-link
         custom
         :key="channel.id"
@@ -24,58 +32,47 @@
         />
       </router-link>
     </div>
-
     <div class="userbar" v-if="auth.state.currentUser">
-        <div class="userbar-left">
-          <div class="avatar-skeleton"></div>
-          <div class="userbar-info">
-            <div class="name">{{ auth.state.currentUser.name }}</div>
-            <div class="tag">{{ auth.state.currentUser.username }}</div>
-          </div>
+      <div class="userbar-left">
+        <div class="userbar-info">
+          <div class="name">{{ auth.state.currentUser.username }}</div>
+          <div class="tag">{{ auth.state.currentUser.name }}</div>
         </div>
-
-        <div class="q-gutter-x-sm">
-          <q-btn
+      </div>
+      <div class="q-gutter-x-sm">
+        <q-btn
           dense flat icon="settings"
           @click="handleSettings"
           aria-label="Nastavenia"
-          />
-
-          <q-btn
+        />
+        <q-btn
           dense flat icon="logout"
           @click="handleLogout"
           aria-label="Logout"
-          />
-
-
-
-        </div>
+        />
       </div>
-
-    </aside>
+    </div>
+  </aside>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { Channel } from 'src/models'
-import { useRouter } from 'vue-router'
-import { useAuth } from 'src/composables/useAuth'
+import { ref } from 'vue';
+import type { Channel } from 'src/models';
+import { ChannelPrivacy } from 'src/models';
+import { useRouter } from 'vue-router';
+import { useAuth } from 'src/composables/useAuth';
 
 
 const channels = ref<Channel[]>([
-  { id: 1, name: 'general', type: 'public' },
-  { id: 2, name: 'lobby', type: 'public' }
+  { id: 1, name: 'general', type: ChannelPrivacy.public },
+  { id: 2, name: 'lobby', type: ChannelPrivacy.public },
+  { id: 3, name: 'general2', type: ChannelPrivacy.public },
+  { id: 4, name: 'lobby2', type: ChannelPrivacy.public },
+  { id: 5, name: 'general3', type: ChannelPrivacy.public },
+  { id: 6, name: 'lobby3', type: ChannelPrivacy.public },
+  { id: 7, name: 'general4', type: ChannelPrivacy.public },
+  { id: 8, name: 'lobby4', type: ChannelPrivacy.public },
 ])
-
-// const currentChannelId = ref<number | null>(channels.value[0]?.id ?? null)
-
-// function selectChannel(id: number) {
-//   currentChannelId.value = id
-// }
-
-// const currentChannelName = computed(
-//   () => channels.value.find(c => c.id === currentChannelId.value)?.name ?? ''
-// )
 
 const router = useRouter()
 const auth = useAuth()
@@ -91,59 +88,6 @@ async function handleLogout(){
 </script>
 
 <style>
-
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  height: 100vh;
-}
-
-/*kanaly*/
-.channels {
-  background-color: #0d0e12;
-  border-right: 1px solid #222;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-bottom: 0;
-}
-
-.channel-list{
-  flex: 1 1 auto;
-  overflow: auto;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-
-.channel-btn {
-  width: 100%;
-  height: 40px;
-  border: none;
-  background: transparent;
-  color: #b0b0b0;
-  font-size: 15px;
-  text-align: left;
-  padding: 0 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: all 0.15s ease;
-}
-
-.channel-btn:hover {
-  background-color: rgb(33, 31, 33);
-  color: #ffffff;
-}
-
-.channel-btn.active {
-  background-color: rgb(59, 55, 58);
-  color: white;
-}
 
 .userbar{
   flex: 0 0 auto;
