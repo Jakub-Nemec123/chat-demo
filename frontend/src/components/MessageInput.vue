@@ -1,10 +1,25 @@
 <template>
-  <div :style="{ contain: 'layout' }">
-    <!-- TODO: render on client only -->
-    <!-- TODO: separate into a component -->
+  <form class="column contain-layout reverse">
+    <q-input
+      autogrow
+      ref="inputField"
+      standout
+      type="textarea"
+      v-model="message"
+    >
+      <template v-slot:append>
+        <q-btn
+          dense
+          flat
+          icon="send"
+          type="submit"
+        />
+      </template>
+    </q-input>
+    <!-- todo: separate into component -->
     <div
-      class="absolute bg-black q-pa-md"
-      :style="testProperty"
+      class="absolute bg-black full-width q-pa-md"
+      :style="{ marginBottom: `${inputHeight}px` }"
       v-if="availableCommands.length > 0"
     >
       <p class="text-bold">Commands:</p>
@@ -23,32 +38,16 @@
         </span>
       </p>
     </div>
-    <form ref="formElement">
-      <q-input
-        autogrow
-        standout
-        type="textarea"
-        v-model="message"
-      >
-        <template v-slot:append>
-          <q-btn
-            dense
-            flat
-            icon="send"
-            type="submit"
-          />
-        </template>
-      </q-input>
-    </form>
-  </div>
+  </form>
 </template>
 
 <script setup lang="ts">
-// import { reactive, ref } from 'vue';
-import type { ComputedRef, Ref } from 'vue';
 import type { Command } from 'src/models';
+import type { ComputedRef, Ref } from 'vue';
+
+import { QInput } from 'quasar';
 import { computed, ref } from 'vue';
-import { useElementBounding, useWindowSize } from '@vueuse/core';
+import { useElementBounding } from '@vueuse/core';
 
 const message: Ref<string> = ref<string>('');
 const availableCommands: ComputedRef<Command[]> =
@@ -98,14 +97,12 @@ const availableCommands: ComputedRef<Command[]> =
     });
   });
 
-// TODO: REMOVE these hacks
-const formElement = ref();
-const bounding = useElementBounding(formElement);
-const size = useWindowSize();
-const testProperty = computed(() => ({
-  // todo: fix some hacks
-  bottom: `${size.height.value - bounding.top.value}px`,
-  marginBottom: '-1em',
-}));
-// TODO: REMOVE these hacks
+const inputField: Ref<QInput | undefined> = ref<QInput | undefined>();
+const inputHeight: ComputedRef<number> = computed<number>(() => {
+  // if input field not loaded, do not add margin
+  if (!inputField.value) return 0;
+
+  // if input field is loaded, get the height reactively
+  return useElementBounding(inputField).height.value;
+});
 </script>
