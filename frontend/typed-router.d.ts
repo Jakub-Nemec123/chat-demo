@@ -59,6 +59,13 @@ declare module 'vue-router/auto-routes' {
       { channel: ParamValue<false> },
       | never
     >,
+    'settings.index': RouteRecordInfo<
+      'settings.index',
+      '/settings',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '[...path]': RouteRecordInfo<
       '[...path]',
       '/:path(.*)',
@@ -103,6 +110,7 @@ declare module 'vue-router/auto-routes' {
         | 'channels'
         | 'channels.[channel]'
         | 'channels.index'
+        | 'settings.index'
       views:
         | 'default'
         | 'sidebar'
@@ -132,6 +140,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(workspace)/channels/[channel].vue': {
       routes:
         | 'channels.[channel]'
+      views:
+        | never
+    }
+    'src/pages/(workspace)/settings/index.vue': {
+      routes:
+        | 'settings.index'
       views:
         | never
     }

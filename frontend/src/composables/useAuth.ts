@@ -1,4 +1,5 @@
 import { reactive, computed } from 'vue'
+import bcrypt from 'bcryptjs'
 import type { User } from 'src/models'
 
 type TokenBundle = {
@@ -8,6 +9,8 @@ type TokenBundle = {
 
 const TOKEN_KEY = 'auth.token'
 const USER_KEY = 'auth.user'
+const PASSHASH_KEY = 'auth.passwordHash' // lokalne
+
 const now = () => Date.now()
 
 const state = reactive<{
@@ -42,6 +45,13 @@ function bootstrapFromStorage() {
   }
 }
 
+async function ensurePasswordHashExists(defaultPlain = 'test'){
+  if (!localStorage.getItem(PASSHASH_KEY)){
+    const hash = await bcrypt.hash(defaultPlain, 10)
+    localStorage.setItem(PASSHASH_KEY, hash)
+  }
+}
+
 function loginWithCredentials(email: string, password: string) {
   // make it valid
   if (!(email === 'test@example.com' && password === 'test')) {
@@ -65,6 +75,8 @@ function loginWithCredentials(email: string, password: string) {
 
   localStorage.setItem(USER_KEY, JSON.stringify(user))
   localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, expiresAt } satisfies TokenBundle))
+
+
 }
 
 function logout() {
@@ -75,13 +87,40 @@ function logout() {
   localStorage.removeItem(USER_KEY)
 }
 
+function updateProfile(patch: Partial<Pick<User, 'name' | 'email' | 'username'>>) {
+  if (!state.currentUser) throw new Error('no user')
+  const next: User = {
+    ...state.currentUser,
+    ...patch
+  }
+  state.currentUser = next
+  localStorage.setItem(USER_KEY, JSON.stringify(next))
+  return next
+}
+
+async function changePassword(currentPlain: string, newPlain: string){
+  const hash = localStorage.getItem(PASSHASH_KEY)
+  if (!hash) throw new Error ('Password hash not set')
+
+  const ok = await bcrypt.compare(currentPlain, hash)
+  if (!ok) throw new Error('Actual password doesnt match')
+
+  const nextHash = await bcrypt.hash(newPlain, 12)
+  localStorage.setItem(PASSHASH_KEY, nextHash)
+
+  return true
+}
+
 export function useAuth() {
   return {
     state,
     isAuthenticated,
     secondsLeft,
+    ensurePasswordHashExists,
     bootstrapFromStorage,
     loginWithCredentials,
-    logout
+    logout,
+    updateProfile,
+    changePassword
   }
 }
