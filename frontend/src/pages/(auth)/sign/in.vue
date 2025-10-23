@@ -68,7 +68,7 @@ async function onSubmit() {
    try {
     auth.loginWithCredentials(formData.value.email, formData.value.password)
     // const redirect = (route.query.redirect as string) || { name: 'channels' };
-    await router.replace({ name: 'channels' })
+    await router.replace({ name: 'channels.index' })
   } catch  {
     error.value = 'Prihlásenie zlyhalo'
   } finally {

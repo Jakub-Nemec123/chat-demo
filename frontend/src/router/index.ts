@@ -35,6 +35,15 @@ export default defineRouter((): Router => {
       auth.bootstrapFromStorage();
     }
 
+    // explicitly redirect root
+    // cannot do that declaratively (`pages/index.vue`),
+    // see https://github.com/posva/unplugin-vue-router/issues/667
+    if (to.path === '/') {
+      return {
+        name: 'channels.index',
+      };
+    }
+
     // todo: add types
     if (to.meta.requiresAuth && !auth.isAuthenticated.value) {
       return {

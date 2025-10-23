@@ -1,6 +1,5 @@
 import { reactive, computed } from 'vue'
-
-import type { User } from 'src/components/models'
+import type { User } from 'src/models'
 
 type TokenBundle = {
   token: string

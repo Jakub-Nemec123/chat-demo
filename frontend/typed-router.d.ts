@@ -42,6 +42,21 @@ declare module 'vue-router/auto-routes' {
       '/channels',
       Record<never, never>,
       Record<never, never>,
+      | 'channels.[channel]'
+      | 'channels.index'
+    >,
+    'channels.index': RouteRecordInfo<
+      'channels.index',
+      '/channels',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    'channels.[channel]': RouteRecordInfo<
+      'channels.[channel]',
+      '/channels/:channel',
+      { channel: ParamValue<true> },
+      { channel: ParamValue<false> },
       | never
     >,
     '[...path]': RouteRecordInfo<
@@ -83,15 +98,40 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/(main).vue': {
+    'src/pages/(workspace).vue': {
       routes:
         | 'channels'
+        | 'channels.[channel]'
+        | 'channels.index'
+      views:
+        | 'default'
+        | 'sidebar'
+    }
+    'src/pages/(workspace)/channels.vue': {
+      routes:
+        | 'channels'
+        | 'channels.[channel]'
+        | 'channels.index'
       views:
         | 'default'
     }
-    'src/pages/(main)/channels.vue': {
+    'src/pages/(workspace)/channels@sidebar.vue': {
       routes:
         | 'channels'
+        | 'channels.[channel]'
+        | 'channels.index'
+      views:
+        | 'default'
+    }
+    'src/pages/(workspace)/channels/index.vue': {
+      routes:
+        | 'channels.index'
+      views:
+        | never
+    }
+    'src/pages/(workspace)/channels/[channel].vue': {
+      routes:
+        | 'channels.[channel]'
       views:
         | never
     }
