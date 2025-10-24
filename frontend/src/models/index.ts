@@ -12,6 +12,7 @@ export interface CommandArgument {
 
 export interface Channel {
   id: number;
+  // Maybe UID? To store channels with same name under different IDS. We can also show The UIDs next to a channel for user to see
   name: string;
   type: ChannelPrivacy
 }

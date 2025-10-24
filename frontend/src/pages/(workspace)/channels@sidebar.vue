@@ -25,6 +25,7 @@
         <q-btn
           align="left"
           :color="isActive ? 'primary' : 'none'"
+          :class="{'is-new' : isNew(channel)}"
           :label="'# ' + channel.name"
           no-caps
           :to="href"
@@ -77,6 +78,14 @@ const channels = ref<Channel[]>([
 const router = useRouter()
 const auth = useAuth()
 
+//very simple solution
+//We need to find out how we will determine if user visited new channel
+//I guess we dont really want to store seen attribute in database
+const isNew = (ch: Channel): boolean =>{
+  return Number(ch.id) === 1
+}
+
+
 async function handleSettings(){
   await router.push({ name: 'settings.index' })
 }
@@ -88,6 +97,10 @@ async function handleLogout(){
 </script>
 
 <style>
+
+.is-new{
+   border: 2px solid var(--q-primary); 
+}
 
 .userbar{
   flex: 0 0 auto;
