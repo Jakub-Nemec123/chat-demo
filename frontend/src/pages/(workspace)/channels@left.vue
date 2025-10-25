@@ -137,7 +137,6 @@ import { useAuth } from 'src/composables/useAuth';
 import { UserStates } from 'src/models';
 import { computed } from 'vue';
 
-
 const channels = ref<Channel[]>([
   { id: 1, name: 'general', type: ChannelPrivacy.public },
   { id: 2, name: 'lobby', type: ChannelPrivacy.public },

@@ -70,6 +70,9 @@ const availableCommands: ComputedRef<Command[]> =
         callable: 'invite',
       } as Command,
       {
+        callable: 'list',
+      } as Command,
+      {
         arguments: [
           { name: 'channel_name', required: true },
           { name: 'private', required: false },
