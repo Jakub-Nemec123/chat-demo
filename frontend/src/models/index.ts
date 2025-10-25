@@ -33,4 +33,11 @@ export interface User {
   email: string;
   name: string;
   username: string;
+  currentState: UserStates;
+}
+
+export enum UserStates {
+  online = 'online',
+  DND = 'DND',
+  offline = 'offline',
 }

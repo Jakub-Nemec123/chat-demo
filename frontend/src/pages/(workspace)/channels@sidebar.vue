@@ -39,6 +39,17 @@
           <div class="name">{{ auth.state.currentUser.username }}</div>
           <div class="tag">{{ auth.state.currentUser.name }}</div>
         </div>
+
+        <span
+          class="presence-dot q-mr-sm"
+          :class="{
+            //find out why it isnt showing colors
+            'presence--online': auth.state.currentUser?.currentState === UserStates.online,
+            'presence--DND':    auth.state.currentUser?.currentState === UserStates.DND,
+            'presence--offline':auth.state.currentUser?.currentState === UserStates.offline
+          }"
+        />
+        <p>{{ auth.state.currentUser.currentState }}</p>
       </div>
       <div class="q-gutter-x-sm">
         <q-btn
@@ -62,6 +73,7 @@ import type { Channel } from 'src/models';
 import { ChannelPrivacy } from 'src/models';
 import { useRouter } from 'vue-router';
 import { useAuth } from 'src/composables/useAuth';
+import { UserStates } from 'src/models';
 
 
 const channels = ref<Channel[]>([
@@ -99,7 +111,7 @@ async function handleLogout(){
 <style>
 
 .is-new{
-   border: 2px solid var(--q-primary); 
+   border: 2px solid var(--q-primary);
 }
 
 .userbar{
@@ -144,6 +156,21 @@ async function handleLogout(){
   color: #9aa0a6;
 }
 
+.presence-dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, .25);
+}
+.body--dark .presence-dot{
+  box-shadow: 0 0 0 2px rgba(255,255,255,.12);
+}
+
+.presence-dot.presence-online { background: green;}
+.presence-DND { background: var(--q-negative);}
+.presence-offline { background: var(--q-grey-6);}
+
 .settings-btn {
   border: none;
   background: transparent;
@@ -154,6 +181,7 @@ async function handleLogout(){
 .settings-btn:hover {
   color: #ffffff;
 }
+
 
 /* chat */
 .chat {

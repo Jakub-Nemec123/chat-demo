@@ -21,6 +21,7 @@
 <script setup lang="ts">
 import type { Ref } from 'vue';
 import type { Message } from 'src/models';
+import { UserStates } from 'src/models';
 
 import { ref } from 'vue';
 
@@ -35,6 +36,7 @@ const messages: Ref<Message[]> = ref<Message[]>([
       email: 'test@example.com',
       name: 'Full name',
       username: 'username',
+      currentState: UserStates.online
     },
     message: 'This is a message\n\nTest multi-line',
   },
@@ -45,6 +47,7 @@ const messages: Ref<Message[]> = ref<Message[]>([
       email: 'test@example.com',
       name: 'Full name',
       username: 'username',
+      currentState: UserStates.online
     },
     message: 'This is a newer message\n\nTest multi-line',
   },
