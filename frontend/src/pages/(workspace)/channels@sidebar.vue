@@ -106,6 +106,34 @@ async function handleLogout(){
   auth.logout()
   await router.replace({name: 'sign.in'})
 }
+
+import { onMounted, onUnmounted } from 'vue'
+import { AppVisibility } from 'quasar'
+import { Notify } from 'quasar';
+
+let timer: number | null = null
+
+function tick() {
+  // Pošli len keď nie je viditeľná karta/okno
+  if (!AppVisibility.appVisible) {
+    // Systémová notifikácia (Windows/macOS/Linux/Android)
+      Notify.create("ubehlo")
+
+    // inak nerob nič (užívateľ musí povoliť notifikácie)
+  }
+}
+
+onMounted(() => {
+  // POZOR: prehliadače často vyžadujú žiadosť o povolenie po užívateľskej akcii
+
+  timer = window.setInterval(tick, 30_000)
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+  timer = null
+})
+
 </script>
 
 <style>
