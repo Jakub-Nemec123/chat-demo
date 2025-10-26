@@ -115,10 +115,8 @@ const inputHeight: ComputedRef<number> = computed<number>(() => {
 
 
 
-const showTyping = computed(() => {
-  if (!message.value.trim().length) return 0;
-
-  return 1
+const showTyping: boolean = computed<boolean>(() => {
+  return !!message.value.trim();
 })
 
 const typedPreview = computed(() => {
