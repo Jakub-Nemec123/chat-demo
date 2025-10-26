@@ -44,6 +44,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
+import { UserStates } from 'src/models';
 import type { Ref } from 'vue';
 import type { User } from 'src/models';
 
@@ -53,18 +54,21 @@ const users: Ref<User[]> = ref<User[]>([
     email: 'email@email.com',
     name: 'Name Name',
     username: 'username123',
+    currentState: UserStates.offline
   },
   {
     id: '456',
     email: 'email@email.com',
     name: 'Name Name',
     username: 'username456',
+    currentState: UserStates.online
   },
   {
     id: '789',
     email: 'email@email.com',
     name: 'Name Name',
     username: 'username789',
+    currentState: UserStates.online
   },
 ]);
 </script>

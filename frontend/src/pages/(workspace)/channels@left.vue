@@ -191,7 +191,7 @@ function tick() {
 }
 
 onMounted(() => {
-  timer = window.setInterval(tick, 30_000)
+  timer = window.setInterval(tick, 3_000)
 })
 
 onUnmounted(() => {

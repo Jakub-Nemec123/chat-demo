@@ -179,29 +179,62 @@
       </q-card-section>
     </q-card>
 
-    <q-btn-group rounded>
-  <q-btn
-    label="Online"
-    :color="presenceModel === UserStates.online ? 'positive' : 'grey-8'"
-    :flat="presenceModel !== UserStates.online"
-    dense unelevated
-    @click="presenceModel = UserStates.online"
-  />
-  <q-btn
-    label="DND"
-    :color="presenceModel === UserStates.DND ? 'negative' : 'grey-8'"
-    :flat="presenceModel !== UserStates.DND"
-    dense unelevated
-    @click="presenceModel = UserStates.DND"
-  />
-  <q-btn
-    label="Offline"
-    :color="presenceModel === UserStates.offline ? 'grey-6' : 'grey-8'"
-    :flat="presenceModel !== UserStates.offline"
-    dense unelevated
-    @click="presenceModel = UserStates.offline"
-  />
-</q-btn-group>
+   <div class="prefs-grid q-mt-md">
+      <!-- Presence -->
+      <q-card flat bordered class="card-surface">
+        <q-card-section>
+          <div class="text-subtitle1">Presence</div>
+          <div class="text-caption text-grey-7">Set your availability</div>
+        </q-card-section>
+        <q-separator />
+        <q-card-section>
+          <q-btn-group rounded class="w-full">
+            <q-btn
+              label="Online"
+              :color="presenceModel === UserStates.online ? 'positive' : 'grey-8'"
+              :flat="presenceModel !== UserStates.online"
+              dense unelevated
+              @click="presenceModel = UserStates.online"
+              icon="circle"
+            />
+            <q-btn
+              label="DND"
+              :color="presenceModel === UserStates.DND ? 'negative' : 'grey-8'"
+              :flat="presenceModel !== UserStates.DND"
+              dense unelevated
+              @click="presenceModel = UserStates.DND"
+              icon="block"
+            />
+            <q-btn
+              label="Offline"
+              :color="presenceModel === UserStates.offline ? 'grey-6' : 'grey-8'"
+              :flat="presenceModel !== UserStates.offline"
+              dense unelevated
+              @click="presenceModel = UserStates.offline"
+              icon="radio_button_unchecked"
+            />
+          </q-btn-group>
+        </q-card-section>
+      </q-card>
+
+      <!-- Notifications -->
+      <q-card flat bordered class="card-surface">
+        <q-card-section>
+          <div class="text-subtitle1">Notifications</div>
+          <div class="text-caption text-grey-7">Message alerts</div>
+        </q-card-section>
+        <q-separator />
+        <q-card-section class="q-gutter-sm">
+          <q-btn-toggle
+            v-model="notifModel"
+            :options="notifOptions"
+            toggle-color="primary"
+            dense rounded unelevated
+          />
+          <div class="text-caption text-grey-6">Current: {{ notifLabel }}</div>
+        </q-card-section>
+      </q-card>
+    </div>
 
   </q-page>
 </template>
@@ -330,32 +363,63 @@ async function onChangePassword() {
     savingPassword.value = false
   }
 }
+
+type NotifLevel = 'none' | 'mentions' | 'all'
+const notifModel = ref<NotifLevel>('mentions')
+const notifOptions = [
+  { label: 'None',     value: 'none',     icon: 'notifications_off' },
+  { label: 'Mentions', value: 'mentions', icon: 'alternate_email'   },
+  { label: 'All',      value: 'all',      icon: 'notifications_active' }
+] as const
+const notifLabel = computed(() => ({
+  none: 'No notifications',
+  mentions: 'Only mentions',
+  all: 'All messages'
+}[notifModel.value]))
+
 </script>
 
 <style scoped>
+
+.settings-page { max-width: 960px; margin: 0 auto; }
+
+
+.header-bar { padding: 6px 0; }
+
+
 .card-surface{
   border-radius: 14px;
 }
+
+
+.prefs-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 900px){
+  .prefs-grid{ grid-template-columns: 1fr 1fr; }
+}
+
 
 .pretty-input .q-field_control{
   border-radius: 12px !important;
   transition: box-shadow .18s ease, background-color .18s ease;
 }
-
-.pretty-input.q-field--filled .q-field__control:before {
-
+.pretty-input.q-field--filled .q-field__control:before{
   background: rgba(0, 0, 0, 0.03);
 }
-.body--dark .pretty-input.q-field--filled .q-field__control:before {
+.body--dark .pretty-input.q-field--filled .q-field__control:before{
   background: rgba(255, 255, 255, 0.06);
 }
-.pretty-input.q-field--focused .q-field__control {
-
+.pretty-input.q-field--focused .q-field__control{
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.20) inset;
 }
 .pretty-input .q-field__native,
-.pretty-input .q-field__label {
-
+.pretty-input .q-field__label{
   font-size: 0.95rem;
 }
+
+.w-full { width: 100%; }
+
 </style>
