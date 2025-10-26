@@ -15,10 +15,22 @@
 </template>
 
 <script setup lang="ts">
+import { AppVisibility } from 'quasar';
+import { Notify } from 'quasar';
+
 definePage({
   meta: {
     requiresAuth: true,
   },
   name: false,
 });
+
+function Notification(){
+  if (!AppVisibility.appVisible){
+    Notify.create("Test notif")
+  }
+}
+
+Notification()
+
 </script>

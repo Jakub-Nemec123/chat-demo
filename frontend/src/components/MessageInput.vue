@@ -1,4 +1,10 @@
 <template>
+  <div class="typing-preview q-mb-xs" v-if="showTyping">
+    <span class="typing-username">Username</span>
+    <span>&nbsp;is typing:&nbsp;</span>
+    <span class="typing-text">{{ typedPreview }}</span>
+  </div>
+
   <form class="column contain-layout reverse">
     <q-input
       autogrow
@@ -50,6 +56,7 @@ import { computed, ref } from 'vue';
 import { useElementBounding } from '@vueuse/core';
 
 const message: Ref<string> = ref<string>('');
+
 const availableCommands: ComputedRef<Command[]> =
   computed<Command[]>(() => {
     if (!message.value.startsWith('/')) return [];
@@ -105,4 +112,25 @@ const inputHeight: ComputedRef<number> = computed<number>(() => {
   // if input field is loaded, get the height reactively
   return useElementBounding(inputField).height.value;
 });
+
+
+
+const showTyping: boolean = computed<boolean>(() => {
+  return !!message.value.trim();
+})
+
+const typedPreview = computed(() => {
+  const s = message.value.replace(/\n/g, ' ↵ ')
+  return s.length > 40 ? s.slice(0, 40) + '…' : s
+})
+
+
 </script>
+
+<style scoped>
+.typing-preview{
+  background-color: var(--q-primary);
+  width: 500px;
+}
+
+</style>

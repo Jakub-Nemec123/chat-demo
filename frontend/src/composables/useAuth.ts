@@ -1,6 +1,11 @@
 import { reactive, computed } from 'vue'
 import bcrypt from 'bcryptjs'
 import type { User } from 'src/models'
+import { UserStates } from 'src/models'
+
+
+//to do
+//We should probably export functions regarding User settings to different file
 
 type TokenBundle = {
   token: string
@@ -62,7 +67,9 @@ function loginWithCredentials(email: string, password: string) {
     id: crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
     name: 'Test Name',
     username: 'Test username',
-    email: 'test@example.com'
+    email: 'test@example.com',
+    currentState: UserStates.online
+
   }
 
   const token = `fake.${btoa(user.username)}.${Math.random().toString(36).slice(2)}`
@@ -98,6 +105,14 @@ function updateProfile(patch: Partial<Pick<User, 'name' | 'email' | 'username'>>
   return next
 }
 
+function setPresence(nextState: UserStates){
+  if (!state.currentUser) throw new Error('no User')
+  const next: User = { ...state.currentUser, currentState: nextState}
+  state.currentUser = next
+  localStorage.setItem(USER_KEY, JSON.stringify(next))
+  return next
+}
+
 async function changePassword(currentPlain: string, newPlain: string){
   const hash = localStorage.getItem(PASSHASH_KEY)
   if (!hash) throw new Error ('Password hash not set')
@@ -116,6 +131,7 @@ export function useAuth() {
     state,
     isAuthenticated,
     secondsLeft,
+    setPresence,
     ensurePasswordHashExists,
     bootstrapFromStorage,
     loginWithCredentials,

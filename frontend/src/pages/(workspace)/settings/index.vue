@@ -178,6 +178,31 @@
         </q-form>
       </q-card-section>
     </q-card>
+
+    <q-btn-group rounded>
+  <q-btn
+    label="Online"
+    :color="presenceModel === UserStates.online ? 'positive' : 'grey-8'"
+    :flat="presenceModel !== UserStates.online"
+    dense unelevated
+    @click="presenceModel = UserStates.online"
+  />
+  <q-btn
+    label="DND"
+    :color="presenceModel === UserStates.DND ? 'negative' : 'grey-8'"
+    :flat="presenceModel !== UserStates.DND"
+    dense unelevated
+    @click="presenceModel = UserStates.DND"
+  />
+  <q-btn
+    label="Offline"
+    :color="presenceModel === UserStates.offline ? 'grey-6' : 'grey-8'"
+    :flat="presenceModel !== UserStates.offline"
+    dense unelevated
+    @click="presenceModel = UserStates.offline"
+  />
+</q-btn-group>
+
   </q-page>
 </template>
 
@@ -186,6 +211,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useQuasar, QForm } from 'quasar'
 import { useAuth } from 'src/composables/useAuth'
+import { UserStates } from 'src/models'
 
 const $q = useQuasar()
 const auth = useAuth()
@@ -241,6 +267,14 @@ onMounted(() => {
   if (!auth.state.currentUser) auth.bootstrapFromStorage()
   loadFromUser()
 })
+
+const presenceModel = computed<UserStates>({
+  get: () => auth.state.currentUser?.currentState ?? UserStates.offline,
+  set: (v) =>{
+    auth.setPresence(v)
+  }
+})
+
 
 async function onSaveProfile() {
   if (!profileForm.value) return
