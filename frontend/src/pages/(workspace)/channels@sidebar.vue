@@ -33,6 +33,43 @@
         />
       </router-link>
     </div>
+
+
+     <!-- ADD CHANNEL (+) -->
+    <q-separator />
+    <div class="q-pa-sm">
+      <q-btn
+        outline
+        icon="add"
+        label="Add channel"
+        class="full-width"
+        @click="showCreateDialog = true"
+      />
+    </div>
+
+    <!-- ACTIONS FOR ACTIVE CHANNEL (leave / delete) -->
+    <div v-if="activeChannel" class="q-pa-sm q-gutter-sm">
+      <q-separator class="q-mb-sm" />
+      <q-btn
+        v-if="isOwner"
+        outline
+        color="negative"
+        icon="delete"
+        label="Delete channel"
+        class="full-width"
+      />
+
+      <q-btn
+        v-else
+        outline
+        color="negative"
+        icon="logout"
+        label="Leave channel"
+        class="full-width"
+      />
+    </div>
+
+
     <div class="userbar" v-if="auth.state.currentUser">
       <div class="userbar-left">
         <div class="userbar-info">
@@ -64,6 +101,30 @@
         />
       </div>
     </div>
+
+
+    <q-dialog v-model="showCreateDialog">
+      <q-card style="min-width: 360px">
+        <q-card-section class="text-h6">Create channel</q-card-section>
+        <q-card-section class="q-gutter-md">
+          <q-input v-model="createForm.name" label="Channel name" dense filled />
+          <q-select
+            v-model="createForm.type"
+            :options="privacyOptions"
+            label="Visibility"
+            dense
+            filled
+            emit-value
+            map-options
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup @click="resetCreateForm" />
+          <q-btn unelevated color="primary" label="Create" @click="submitCreate" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </aside>
 </template>
 
@@ -71,9 +132,10 @@
 import { ref } from 'vue';
 import type { Channel } from 'src/models';
 import { ChannelPrivacy } from 'src/models';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from 'src/composables/useAuth';
 import { UserStates } from 'src/models';
+import { computed } from 'vue';
 
 
 const channels = ref<Channel[]>([
@@ -88,6 +150,7 @@ const channels = ref<Channel[]>([
 ])
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuth()
 
 //very simple solution
@@ -97,6 +160,15 @@ const isNew = (ch: Channel): boolean =>{
   return Number(ch.id) === 1
 }
 
+const activeChannel = computed(() =>
+  route.name === 'channels.[channel]'
+    ? channels.value.find(c => c.name === String(route.params.channel)) ?? null
+    : null
+)
+
+const isOwner = computed(() =>
+  !!activeChannel.value && activeChannel.value.id === 2
+)
 
 async function handleSettings(){
   await router.push({ name: 'settings.index' })
@@ -127,6 +199,28 @@ onUnmounted(() => {
   if (timer) clearInterval(timer)
   timer = null
 })
+
+
+import { reactive } from 'vue';
+const showCreateDialog = ref(false)
+const createForm = reactive<{ name: string; type: ChannelPrivacy }>({
+  name: '',
+  type: ChannelPrivacy.public
+})
+const privacyOptions = [
+  { label: 'Public',  value: ChannelPrivacy.public },
+  { label: 'Private', value: ChannelPrivacy.private }
+]
+
+function resetCreateForm () {
+  createForm.name = ''
+  createForm.type = ChannelPrivacy.public
+}
+function submitCreate () {
+  showCreateDialog.value = false
+  resetCreateForm()
+}
+
 
 </script>
 
