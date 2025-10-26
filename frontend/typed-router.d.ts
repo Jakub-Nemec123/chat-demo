@@ -42,8 +42,8 @@ declare module 'vue-router/auto-routes' {
       '/channels',
       Record<never, never>,
       Record<never, never>,
-      | 'channels.[channel]'
       | 'channels.index'
+      | 'channels.show'
     >,
     'channels.index': RouteRecordInfo<
       'channels.index',
@@ -52,11 +52,11 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    'channels.[channel]': RouteRecordInfo<
-      'channels.[channel]',
+    'channels.show': RouteRecordInfo<
+      'channels.show',
       '/channels/:channel',
-      { channel: ParamValue<true> },
-      { channel: ParamValue<false> },
+      Record<never, never>,
+      Record<never, never>,
       | never
     >,
     'settings.index': RouteRecordInfo<
@@ -108,8 +108,8 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(workspace).vue': {
       routes:
         | 'channels'
-        | 'channels.[channel]'
         | 'channels.index'
+        | 'channels.show'
         | 'settings.index'
       views:
         | 'default'
@@ -119,8 +119,8 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(workspace)/channels.vue': {
       routes:
         | 'channels'
-        | 'channels.[channel]'
         | 'channels.index'
+        | 'channels.show'
       views:
         | 'default'
         | 'right'
@@ -128,8 +128,8 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(workspace)/channels@left.vue': {
       routes:
         | 'channels'
-        | 'channels.[channel]'
         | 'channels.index'
+        | 'channels.show'
       views:
         | 'default'
         | 'right'
@@ -140,15 +140,15 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/(workspace)/channels/[channel].vue': {
+    'src/pages/(workspace)/channels/show.vue': {
       routes:
-        | 'channels.[channel]'
+        | 'channels.show'
       views:
         | never
     }
-    'src/pages/(workspace)/channels/[channel]@right.vue': {
+    'src/pages/(workspace)/channels/show@right.vue': {
       routes:
-        | 'channels.[channel]'
+        | 'channels.show'
       views:
         | never
     }

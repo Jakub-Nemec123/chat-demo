@@ -2,12 +2,26 @@
   <q-layout view="hHh LpR lfr">
     <q-header elevated>
       <q-toolbar>
-        <q-btn dense flat icon="menu" round v-if="has('left')" />
+        <q-btn
+          dense
+          flat
+          icon="menu"
+          round
+          v-if="has('left')"
+        />
         <q-toolbar-title>Quasar App</q-toolbar-title>
-        <q-btn dense flat icon="group" round v-if="has('right')" />
+        <q-btn
+          @click="appInterface.toggleRightSidebar"
+          dense
+          flat
+          icon="group"
+          round
+          v-if="has('right')"
+        />
       </q-toolbar>
     </q-header>
     <q-drawer
+      :model-value="appInterface.sidebar.left"
       no-swipe-open
       persistent
       show-if-above
@@ -20,9 +34,9 @@
       <router-view />
     </q-page-container>
     <q-drawer
+      :model-value="appInterface.sidebar.right"
       no-swipe-open
       persistent
-      show-if-above
       side="right"
       v-if="has('right')"
     >
@@ -34,8 +48,14 @@
 <script setup lang="ts">
 import { AppVisibility } from 'quasar';
 import { Notify } from 'quasar';
-import type { RouteComponent, RouteLocation, RouteLocationMatched } from 'vue-router';
 import { useRoute } from 'vue-router';
+import { useInterface } from 'src/stores/interface';
+
+import type {
+  RouteComponent,
+  RouteLocation,
+  RouteLocationMatched
+} from 'vue-router';
 
 definePage({
   meta: {
@@ -52,6 +72,7 @@ function Notification(){
 
 Notification()
 
+const appInterface = useInterface();
 const route: RouteLocation = useRoute();
 
 function get(view: string): RouteComponent | undefined {

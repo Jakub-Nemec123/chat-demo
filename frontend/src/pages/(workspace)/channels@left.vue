@@ -16,7 +16,7 @@
         v-for="channel in channels"
         v-slot="{ href, isActive }"
         :to="{
-          name: 'channels.[channel]',
+          name: 'channels.show',
           params: {
             channel: channel.name,
           },
@@ -129,13 +129,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import type { Channel } from 'src/models';
 import { ChannelPrivacy } from 'src/models';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from 'src/composables/useAuth';
 import { UserStates } from 'src/models';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const channels = ref<Channel[]>([
   { id: 1, name: 'general', type: ChannelPrivacy.public },
@@ -148,9 +147,9 @@ const channels = ref<Channel[]>([
   { id: 8, name: 'lobby4', type: ChannelPrivacy.public },
 ])
 
-const router = useRouter()
-const route = useRoute()
-const auth = useAuth()
+const router = useRouter();
+const route = useRoute();
+const auth = useAuth();
 
 //very simple solution
 //We need to find out how we will determine if user visited new channel
@@ -159,8 +158,9 @@ const isNew = (ch: Channel): boolean =>{
   return Number(ch.id) === 1
 }
 
+// TODO: refactor to take advantage of vue-router features
 const activeChannel = computed(() =>
-  route.name === 'channels.[channel]'
+  route.name === 'channels.show'
     ? channels.value.find(c => c.name === String(route.params.channel)) ?? null
     : null
 )
@@ -170,12 +170,12 @@ const isOwner = computed(() =>
 )
 
 async function handleSettings(){
-  await router.push({ name: 'settings.index' })
+  await router.push({ name: 'settings.index' });
 }
 
 async function handleLogout(){
-  auth.logout()
-  await router.replace({name: 'sign.in'})
+  auth.logout();
+  await router.replace({ name: 'sign.in' });
 }
 
 import { onMounted, onUnmounted } from 'vue'
