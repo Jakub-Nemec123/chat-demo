@@ -14,8 +14,11 @@
       side="left"
       v-if="has('left')"
     >
-      <router-view name="left" />
+      <component :is="get('left')" />
     </q-drawer>
+    <q-page-container>
+      <router-view />
+    </q-page-container>
     <q-drawer
       no-swipe-open
       persistent
@@ -23,18 +26,15 @@
       side="right"
       v-if="has('right')"
     >
-      <router-view name="right" />
+      <component :is="get('right')" />
     </q-drawer>
-    <q-page-container>
-      <router-view />
-    </q-page-container>
   </q-layout>
 </template>
 
 <script setup lang="ts">
 import { AppVisibility } from 'quasar';
 import { Notify } from 'quasar';
-import type { RouteLocation, RouteLocationMatched } from 'vue-router';
+import type { RouteComponent, RouteLocation, RouteLocationMatched } from 'vue-router';
 import { useRoute } from 'vue-router';
 
 definePage({
@@ -53,13 +53,20 @@ function Notification(){
 Notification()
 
 const route: RouteLocation = useRoute();
+
+function get(view: string): RouteComponent | undefined {
+  if (!view) return undefined;
+
+  // matches the latest route with a defined template
+  return route.matched.findLast(
+    (route: RouteLocationMatched): boolean => {
+      if (!route.components) return false;
+      return view in route.components;
+    }
+  )?.components?.[view];
+}
+
 function has(view: string): boolean {
-  if (!view) return false;
-
-  return !!route.matched.find((route: RouteLocationMatched) => {
-    if (!route.components) return false;
-
-    return view in route.components;
-  });
+  return !!get(view);
 }
 </script>
