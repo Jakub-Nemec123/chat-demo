@@ -4,10 +4,13 @@
     <span>&nbsp;is typing:&nbsp;</span>
     <span class="typing-text">{{ typedPreview }}</span>
   </div>
-
-  <form class="column contain-layout reverse">
+  <q-form
+    class="column contain-layout reverse"
+    @submit.prevent="onSubmit"
+  >
     <q-input
       autogrow
+      @keydown.enter.exact.prevent="onSubmit"
       ref="inputField"
       standout
       type="textarea"
@@ -15,6 +18,7 @@
     >
       <template v-slot:append>
         <q-btn
+          @click.prevent="onSubmit"
           dense
           flat
           icon="send"
@@ -44,18 +48,28 @@
         </span>
       </p>
     </div>
-  </form>
+  </q-form>
 </template>
 
 <script setup lang="ts">
 import type { Command } from 'src/models';
 import type { ComputedRef, Ref } from 'vue';
+import type { UseElementBoundingReturn } from '@vueuse/core';
 
 import { QInput } from 'quasar';
 import { computed, ref } from 'vue';
 import { useElementBounding } from '@vueuse/core';
 
+const emit = defineEmits<{
+  (e: 'submit', message: string): void
+}>()
+
 const message: Ref<string> = ref<string>('');
+
+const inputField: Ref<QInput | undefined> = ref<QInput | undefined>();
+
+const inputBound: UseElementBoundingReturn
+  = useElementBounding(inputField);
 
 const availableCommands: ComputedRef<Command[]> =
   computed<Command[]>(() => {
@@ -68,6 +82,9 @@ const availableCommands: ComputedRef<Command[]> =
           { name: 'username', required: true },
         ],
         callable: 'invite',
+      } as Command,
+      {
+        callable: 'list',
       } as Command,
       {
         arguments: [
@@ -104,18 +121,17 @@ const availableCommands: ComputedRef<Command[]> =
     });
   });
 
-const inputField: Ref<QInput | undefined> = ref<QInput | undefined>();
 const inputHeight: ComputedRef<number> = computed<number>(() => {
   // if input field not loaded, do not add margin
   if (!inputField.value) return 0;
 
   // if input field is loaded, get the height reactively
-  return useElementBounding(inputField).height.value;
+  return inputBound.height.value;
 });
 
 
 
-const showTyping: boolean = computed<boolean>(() => {
+const showTyping: ComputedRef<boolean> = computed<boolean>(() => {
   return !!message.value.trim();
 })
 
@@ -125,6 +141,12 @@ const typedPreview = computed(() => {
 })
 
 
+function onSubmit(): void {
+  // submit the message above
+  emit('submit', message.value);
+  // clear the submitted message
+  message.value = '';
+}
 </script>
 
 <style scoped>

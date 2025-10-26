@@ -26,7 +26,9 @@
       </q-infinite-scroll>
     </div>
     <div class="col-shrink q-pa-md">
-      <message-input />
+      <message-input
+        @submit="onSubmit"
+      />
     </div>
   </q-page>
 </template>
@@ -37,11 +39,15 @@ import type { Message } from 'src/models';
 import { UserStates } from 'src/models';
 
 import { ref } from 'vue';
-
+import { useInterface } from 'src/stores/interface';
 import ChannelMessage from 'components/ChannelMessage.vue';
 import MessageInput from 'components/MessageInput.vue';
 
+definePage({
+  path: ':channel',
+});
 
+const appInterface = useInterface();
 
 const messages: Ref<Message[]> = ref<Message[]>([
   {
@@ -198,6 +204,16 @@ function onLoad(index: number, done: () => void) {
   }, 2000)
 }
 
+function onSubmit(message: string): void {
+  console.log('submitted');
+
+  // check if it’s a list command
+  // if so, toggle the sidebar
+  if (message === '/list') {
+    console.log('list requested');
+    appInterface.toggleRightSidebar();
+  }
+}
 </script>
 
 <style scoped >
