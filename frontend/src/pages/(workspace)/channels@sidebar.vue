@@ -114,18 +114,12 @@ import { Notify } from 'quasar';
 let timer: number | null = null
 
 function tick() {
-  // Pošli len keď nie je viditeľná karta/okno
   if (!AppVisibility.appVisible) {
-    // Systémová notifikácia (Windows/macOS/Linux/Android)
-      Notify.create("ubehlo")
-
-    // inak nerob nič (užívateľ musí povoliť notifikácie)
+      Notify.create("Test notif")
   }
 }
 
 onMounted(() => {
-  // POZOR: prehliadače často vyžadujú žiadosť o povolenie po užívateľskej akcii
-
   timer = window.setInterval(tick, 30_000)
 })
 
