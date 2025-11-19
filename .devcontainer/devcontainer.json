@@ -1,8 +1,8 @@
 {
   "name": "node dev container",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "service": "dev_base",
+  "workspaceFolder": "/workspaces/chat-demo",
+  "dockerComposeFile": "docker-compose.yml",
   "customizations": {
     "vscode": {
       "extensions": [
