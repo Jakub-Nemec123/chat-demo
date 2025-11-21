@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, column, manyToMany } from '@adonisjs/lucid/orm'
+import type { ManyToMany } from '@adonisjs/lucid/types/relations'
+import Channel from './channel.js'
 
 export default class User extends BaseModel {
   @column({ isPrimary: true })
@@ -19,6 +21,13 @@ export default class User extends BaseModel {
 
   @column({ columnName: 'password_hash', serializeAs: null })
   declare password: string
+
+  @manyToMany(() => Channel, {
+    pivotTable: 'channel_users',
+    pivotColumns: ['is_admin', 'alerts'],
+    pivotTimestamps: true,
+  })
+  declare channels: ManyToMany<typeof Channel>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

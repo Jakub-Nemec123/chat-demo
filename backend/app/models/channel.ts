@@ -1,10 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
-
-enum Privacy {
-  PRIVATE,
-  PUBLIC,
-}
+import { ChannelPrivacy } from '#contracts/channel_privacy'
 
 export default class Channel extends BaseModel {
   @column({ isPrimary: true })
@@ -14,7 +10,7 @@ export default class Channel extends BaseModel {
   declare slug: string
 
   @column()
-  declare privacy: Privacy
+  declare privacy: ChannelPrivacy
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

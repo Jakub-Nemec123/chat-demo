@@ -11,6 +11,7 @@ export default class extends BaseSchema {
       // nullable in case of data error
       table.string('first_name').nullable()
       table.string('last_name').nullable()
+      table.string('username').notNullable().unique()
       table.string('email').notNullable()
       table.string('password_hash').notNullable()
       table.timestamp('created_at').notNullable().defaultTo(now)
