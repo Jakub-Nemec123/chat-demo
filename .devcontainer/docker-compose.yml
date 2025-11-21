@@ -1,12 +1,14 @@
 version: "3.8"
 services:
-  dev_base:
+  devapp:
     build:
       dockerfile: Dockerfile
     command: sleep infinity
+    depends_on:
+      - devdata
     volumes:
       - ..:/workspaces/chat-demo:cached
-  dev_data:
+  devdata:
     environment:
       POSTGRES_DB: vpwa_db
       POSTGRES_USER: vpwa_chat

@@ -1,6 +1,6 @@
 {
   "name": "node dev container",
-  "service": "dev_base",
+  "service": "devapp",
   "workspaceFolder": "/workspaces/chat-demo",
   "dockerComposeFile": "docker-compose.yml",
   "customizations": {

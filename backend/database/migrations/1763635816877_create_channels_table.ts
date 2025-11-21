@@ -5,6 +5,8 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
+      const now = this.raw('CURRENT_TIMESTAMP')
+
       table.increments('id')
       table.string('slug').notNullable()
       table.enu('privacy', ['PRIVATE', 'PUBLIC'], {
@@ -12,8 +14,8 @@ export default class extends BaseSchema {
         existingType: false,
         useNative: true,
       })
-      table.timestamp('created_at').defaultTo('CURRENT_TIMESTAMP')
-      table.timestamp('updated_at').defaultTo('CURRENT_TIMESTAMP')
+      table.timestamp('created_at').notNullable().defaultTo(now)
+      table.timestamp('updated_at').notNullable().defaultTo(now)
     })
   }
 

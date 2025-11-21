@@ -5,12 +5,14 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
+      const now = this.raw('CURRENT_TIMESTAMP')
+
       table.increments('id')
       table.integer('user_id').references('users.id').onUpdate('CASCADE').onDelete('RESTRICT')
       // when channel is deleted, delete all the messages as well
       table.integer('channel_id').references('channels.id').onUpdate('CASCADE').onDelete('CASCADE')
-      table.timestamp('created_at').defaultTo('CURRENT_TIMESTAMP')
-      table.timestamp('updated_at').defaultTo('CURRENT_TIMESTAMP')
+      table.timestamp('created_at').notNullable().defaultTo(now)
+      table.timestamp('updated_at').notNullable().defaultTo(now)
     })
   }
 
