@@ -1,9 +1,18 @@
+import hash from '@adonisjs/core/services/hash'
+import Channel from '#models/channel'
+import { compose } from '@adonisjs/core/helpers'
 import { DateTime } from 'luxon'
+import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
+import { AccessToken, DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import { BaseModel, column, manyToMany } from '@adonisjs/lucid/orm'
 import type { ManyToMany } from '@adonisjs/lucid/types/relations'
-import Channel from './channel.js'
 
-export default class User extends BaseModel {
+const AuthFinder = withAuthFinder(() => hash.use('argon'), {
+  uids: ['email'],
+  passwordColumnName: 'password',
+})
+
+export default class User extends compose(BaseModel, AuthFinder) {
   @column({ isPrimary: true })
   declare id: number
 
@@ -34,4 +43,14 @@ export default class User extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  currentAccessToken?: AccessToken
+
+  static accessTokens = DbAccessTokensProvider.forModel(User, {
+    type: 'auth_token',
+    table: 'access_tokens',
+    prefix: 'chat_',
+    expiresIn: '14 days',
+    tokenSecretLength: 20,
+  })
 }
