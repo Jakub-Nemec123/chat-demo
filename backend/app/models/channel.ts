@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+
 import { ChannelPrivacy } from '#contracts/channel_privacy'
 
 export default class Channel extends BaseModel {
