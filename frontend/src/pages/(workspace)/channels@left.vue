@@ -134,18 +134,35 @@ import { ChannelPrivacy } from 'src/models';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from 'src/composables/useAuth';
 import { UserStates } from 'src/models';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import { channelsService, type ChannelResponse } from 'src/services/channels';
 
-const channels = ref<Channel[]>([
-  { id: 1, name: 'general', type: ChannelPrivacy.public },
-  { id: 2, name: 'lobby', type: ChannelPrivacy.public },
-  { id: 3, name: 'general2', type: ChannelPrivacy.public },
-  { id: 4, name: 'lobby2', type: ChannelPrivacy.public },
-  { id: 5, name: 'general3', type: ChannelPrivacy.public },
-  { id: 6, name: 'lobby3', type: ChannelPrivacy.public },
-  { id: 7, name: 'general4', type: ChannelPrivacy.public },
-  { id: 8, name: 'lobby4', type: ChannelPrivacy.public },
-])
+// Hardcoded user ID for testing
+const CURRENT_USER_ID = 1;
+
+const channels = ref<Channel[]>([])
+
+function transformChannel(ch: ChannelResponse): Channel {
+  return {
+    id: ch.id,
+    name: ch.slug,
+    type: ch.privacy === 'PUBLIC' ? ChannelPrivacy.public : ChannelPrivacy.private
+  }
+}
+
+// Load channels from API
+async function loadChannels() {
+  try {
+    const response = await channelsService.getChannels(CURRENT_USER_ID)
+    channels.value = response.map(transformChannel)
+  } catch (error) {
+    console.error('Failed to load channels:', error)
+  }
+}
+
+onMounted(async () => {
+  await loadChannels()
+})
 
 const router = useRouter();
 const route = useRoute();
@@ -161,7 +178,7 @@ const isNew = (ch: Channel): boolean =>{
 // TODO: refactor to take advantage of vue-router features
 const activeChannel = computed(() =>
   route.name === 'channels.show'
-    ? channels.value.find(c => c.name === String(route.params.channel)) ?? null
+    ? channels.value.find(c => c.name === String((route.params as any).channel)) ?? null
     : null
 )
 

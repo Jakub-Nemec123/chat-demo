@@ -38,180 +38,110 @@ import type { Ref } from 'vue';
 import type { Message } from 'src/models';
 import { UserStates } from 'src/models';
 
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { useInterface } from 'src/stores/interface';
 import ChannelMessage from 'components/ChannelMessage.vue';
 import MessageInput from 'components/MessageInput.vue';
+import { messagesService, type MessageResponse } from 'src/services/messages';
 
 definePage({
   path: ':channel',
 });
 
 const appInterface = useInterface();
+const route = useRoute();
 
-const messages: Ref<Message[]> = ref<Message[]>([
-  {
-    id: 'testm_123',
+// Hardcoded user ID for testing
+const CURRENT_USER_ID = 1;
+
+const messages: Ref<Message[]> = ref<Message[]>([]);
+const hasMore = ref(true);
+const currentPage = ref(1);
+const isLoading = ref(false);
+
+//Temporary
+const channelNameToId: Record<string, number> = {
+  'general': 1,
+  'random': 2,
+  'tech-talk': 3,
+};
+
+const channelId = computed(() => {
+  const channelName = String((route.params as any).channel);
+  return channelNameToId[channelName] || 1;
+});
+
+
+function transformMessage(msg: MessageResponse): Message {
+  return {
+    id: String(msg.id),
     author: {
-      id: '123',
-      email: 'test@example.com',
-      name: 'Full name',
-      username: 'username',
-      currentState: UserStates.online
+      id: String(msg.user.id),
+      email: '',
+      name: `${msg.user.first_name} ${msg.user.last_name}`,
+      username: msg.user.username,
+      currentState: UserStates.online,
     },
-    message: 'lorem',
-  },
-  {
-    id: 'message_123',
-    author: {
-      id: '123',
-      email: 'test@example.com',
-      name: 'Full name',
-      username: 'username',
-      currentState: UserStates.online
-    },
-    message: 'This is a message\n\nTest multi-line',
-  },
-  {
-    id: 'message_123',
-    author: {
-      id: '123',
-      email: 'test@example.com',
-      name: 'Full name',
-      username: 'username',
-      currentState: UserStates.online
-    },
-    message: 'This is a message\n\nTest multi-line',
-  },
-  {
-    id: 'message_123',
-    author: {
-      id: '123',
-      email: 'test@example.com',
-      name: 'Full name',
-      username: 'username',
-      currentState: UserStates.online
-    },
-    message: 'This is a message\n\nTest multi-line',
-  },
-  {
-    id: 'message_123',
-    author: {
-      id: '123',
-      email: 'test@example.com',
-      name: 'Full name',
-      username: 'username',
-      currentState: UserStates.online
-    },
-    message: 'This is a message\n\nTest multi-line',
-  },
-  {
-    id: 'message_123',
-    author: {
-      id: '123',
-      email: 'test@example.com',
-      name: 'Full name',
-      username: 'username',
-      currentState: UserStates.online
-    },
-    message: 'This is a message\n\nTest multi-line',
-  },
-  {
-    id: 'message_123',
-    author: {
-      id: '123',
-      email: 'test@example.com',
-      name: 'Full name',
-      username: 'username',
-      currentState: UserStates.online
-    },
-    message: 'This is a message\n\nTest multi-line',
-  },
-  {
-    id: 'message_123',
-    author: {
-      id: '123',
-      email: 'test@example.com',
-      name: 'Full name',
-      username: 'username',
-      currentState: UserStates.online
-    },
-    message: '@testuser',
-  },
-  {
-    id: 'message_456',
-    author: {
-      id: '123',
-      email: 'test@example.com',
-      name: 'Full name',
-      username: 'username',
-      currentState: UserStates.online
-    },
-    message: 'This is a newer message\n\nTest multi-line',
-  },
-]);
-
-const hasMore = ref(true)
-
-
-
-function onLoad(index: number, done: () => void) {
-
-  setTimeout(() => {
-
-    const older: Message[] = [
-      {
-        id: 'message_' + Math.random().toString(36).slice(2),
-        author: {
-          id: '456',
-          email: 'other@example.com',
-          name: 'Other',
-          username: 'other',
-          currentState: UserStates.offline
-        },
-        message: 'Older message #' + (index + 1)
-      },
-      {
-        id: 'message_' + Math.random().toString(36).slice(2),
-        author: {
-          id: '457',
-          email: 'other@example.com',
-          name: 'Other',
-          username: 'other',
-          currentState: UserStates.offline
-        },
-        message: 'Older message #' + (index + 2)
-      },
-      {
-        id: 'message_' + Math.random().toString(36).slice(2),
-        author: {
-          id: '458',
-          email: 'other@example.com',
-          name: 'Other',
-          username: 'other',
-          currentState: UserStates.offline
-        },
-        message: 'Older message #' + (index + 3)
-      },
-    ]
-
-
-    messages.value.unshift(...older)
-    hasMore.value = false
-
-    done()
-
-  }, 2000)
+    message: msg.content,
+  };
 }
 
-function onSubmit(message: string): void {
+async function loadMessages(page: number) {
+  if (isLoading.value) return;
+
+  isLoading.value = true;
+  try {
+    const response = await messagesService.getMessages(CURRENT_USER_ID, channelId.value, page);
+
+    const transformedMessages = response.data.map(transformMessage);
+
+    messages.value.unshift(...transformedMessages.reverse());
+
+    hasMore.value = response.meta.current_page < response.meta.last_page;
+    currentPage.value = response.meta.current_page;
+  } catch (error) {
+    console.error('Failed to load messages:', error);
+    hasMore.value = false;
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+onMounted(async () => {
+  await loadMessages(1);
+});
+
+function onLoad(index: number, done: () => void) {
+  if (!hasMore.value) {
+    done();
+    return;
+  }
+
+  void loadMessages(currentPage.value + 1).then(() => {
+    done();
+  });
+}
+
+async function onSubmit(message: string): Promise<void> {
   console.log('submitted');
 
-  // check if it’s a list command
-  // if so, toggle the sidebar
+
   if (message === '/list') {
     console.log('list requested');
     appInterface.toggleRightSidebar();
+    return;
+  }
+
+  // Submit message to API
+  try {
+    const response = await messagesService.createMessage(CURRENT_USER_ID, channelId.value, message);
+
+    // Add new message to the list
+    const newMessage = transformMessage(response);
+    messages.value.push(newMessage);
+  } catch (error) {
+    console.error('Failed to send message:', error);
   }
 }
 </script>
