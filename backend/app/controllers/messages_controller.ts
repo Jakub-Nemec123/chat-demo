@@ -4,8 +4,9 @@ import Channel from '#models/channel'
 import { createMessageValidator } from '#validators/message'
 
 export default class MessagesController {
-  async index({ params, response }: HttpContext) {
-    const userId = params.userId
+  async index({ auth, params, response }: HttpContext) {
+    // const userId = params.userId
+    const userId = auth.getUserOrFail().id
     const channelId = params.channelId
     const page = params.page || 1
 
@@ -34,8 +35,9 @@ export default class MessagesController {
     return response.ok(messages)
   }
 
-  async store({ params, request, response }: HttpContext) {
-    const userId = params.userId
+  async store({ auth, params, request, response }: HttpContext) {
+    // const userId = params.userId
+    const userId = auth.getUserOrFail().id
     const channelId = params.channelId
     const payload = await createMessageValidator.validate(request.all())
 

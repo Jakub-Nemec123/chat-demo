@@ -3,8 +3,9 @@ import Channel from '#models/channel'
 import db from '@adonisjs/lucid/services/db'
 
 export default class ChannelsController {
-  async index({ params, response }: HttpContext) {
-    const userId = params.userId
+  async index({ auth, response }: HttpContext) {
+    // const userId = params.userId
+    const userId = auth.getUserOrFail().id
 
     // Get all PUBLIC channels
     const publicChannels = await Channel.query().where('privacy', 'PUBLIC')
@@ -28,8 +29,9 @@ export default class ChannelsController {
     return response.ok(allChannels)
   }
 
-  async show({ params, response }: HttpContext) {
-    const userId = params.userId
+  async show({ auth, params, response }: HttpContext) {
+    // const userId = params.userId
+    const userId = auth.getUserOrFail().id
     const channelId = params.channelId
 
     // Get channel with basic info

@@ -15,13 +15,13 @@ export interface ChannelDetailsResponse extends ChannelResponse {
 }
 
 export const channelsService = {
-  async getChannels(userId: number): Promise<ChannelResponse[]> {
-    const response = await api.get(`/users/${userId}/channels`)
+  async getChannels(): Promise<ChannelResponse[]> {
+    const response = await api.get(`/channels`)
     return response.data
   },
 
-  async getChannelDetails(userId: number, channelId: number): Promise<ChannelDetailsResponse> {
-    const response = await api.get(`/users/${userId}/channels/${channelId}`)
+  async getChannelDetails(channelId: number): Promise<ChannelDetailsResponse> {
+    const response = await api.get(`/channels/${channelId}`)
     return response.data
   }
 }

@@ -1,3 +1,4 @@
+import { errors as authErrors } from '@adonisjs/auth'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
@@ -7,12 +8,10 @@ import type { NextFn } from '@adonisjs/core/types/http'
  */
 export default class AuthMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
-    await ctx.auth.use('api').check()
+    await ctx.auth.check()
 
-    if (!ctx.auth.use('api').isAuthenticated) {
-      return 'User not authenticated'
+    if (ctx.auth.getUserOrFail()) {
+      return next()
     }
-
-    return next()
   }
 }

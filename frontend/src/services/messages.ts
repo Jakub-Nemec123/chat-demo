@@ -31,15 +31,15 @@ export interface MessagesIndexResponse {
 }
 
 export const messagesService = {
-  async getMessages(userId: number, channelId: number, page: number = 1): Promise<MessagesIndexResponse> {
-    const response = await api.get(`/users/${userId}/channels/${channelId}/messages`, {
+  async getMessages(channelId: number, page: number = 1): Promise<MessagesIndexResponse> {
+    const response = await api.get(`/channels/${channelId}/messages`, {
       params: { page }
     })
     return response.data
   },
 
-  async createMessage(userId: number, channelId: number, content: string): Promise<MessageResponse> {
-    const response = await api.post(`/users/${userId}/channels/${channelId}/messages`, {
+  async createMessage(channelId: number, content: string): Promise<MessageResponse> {
+    const response = await api.post(`/channels/${channelId}/messages`, {
       content
     })
     return response.data
