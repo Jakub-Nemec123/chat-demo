@@ -195,7 +195,7 @@ async function handleLogout(){
   await router.replace({ name: 'sign.in' });
 }
 
-import { onMounted, onUnmounted } from 'vue'
+import { onUnmounted } from 'vue'
 import { AppVisibility } from 'quasar'
 import { Notify } from 'quasar';
 

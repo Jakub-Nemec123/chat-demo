@@ -129,7 +129,7 @@ async function onSubmit(message: string): Promise<void> {
 
   if (message === '/list') {
     console.log('list requested');
-    appInterface.toggleRightSidebar();
+    appInterface.toggleSidebar('right');
     return;
   }
 
