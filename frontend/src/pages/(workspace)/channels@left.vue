@@ -153,7 +153,7 @@ function transformChannel(ch: ChannelResponse): Channel {
 // Load channels from API
 async function loadChannels() {
   try {
-    const response = await channelsService.getChannels(CURRENT_USER_ID)
+    const response = await channelsService.getChannels()
     channels.value = response.map(transformChannel)
   } catch (error) {
     console.error('Failed to load channels:', error)
@@ -195,7 +195,7 @@ async function handleLogout(){
   await router.replace({ name: 'sign.in' });
 }
 
-import { onMounted, onUnmounted } from 'vue'
+import { onUnmounted } from 'vue'
 import { AppVisibility } from 'quasar'
 import { Notify } from 'quasar';
 

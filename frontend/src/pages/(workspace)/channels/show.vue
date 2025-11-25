@@ -92,7 +92,7 @@ async function loadMessages(page: number) {
 
   isLoading.value = true;
   try {
-    const response = await messagesService.getMessages(CURRENT_USER_ID, channelId.value, page);
+    const response = await messagesService.getMessages(channelId.value, page);
 
     const transformedMessages = response.data.map(transformMessage);
 
@@ -129,13 +129,13 @@ async function onSubmit(message: string): Promise<void> {
 
   if (message === '/list') {
     console.log('list requested');
-    appInterface.toggleRightSidebar();
+    appInterface.toggleSidebar('right');
     return;
   }
 
   // Submit message to API
   try {
-    const response = await messagesService.createMessage(CURRENT_USER_ID, channelId.value, message);
+    const response = await messagesService.createMessage(channelId.value, message);
 
     // Add new message to the list
     const newMessage = transformMessage(response);

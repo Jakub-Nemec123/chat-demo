@@ -3,6 +3,7 @@
     <q-header elevated>
       <q-toolbar>
         <q-btn
+          @click="appInterface.toggleSidebar('left')"
           dense
           flat
           icon="menu"
@@ -11,7 +12,7 @@
         />
         <q-toolbar-title>Quasar App</q-toolbar-title>
         <q-btn
-          @click="appInterface.toggleRightSidebar"
+          @click="appInterface.toggleSidebar('right')"
           dense
           flat
           icon="group"

@@ -2,6 +2,10 @@ import { reactive, computed } from 'vue'
 import bcrypt from 'bcryptjs'
 import type { User } from 'src/models'
 import { UserStates } from 'src/models'
+import authService from 'src/services/auth'
+import type { TokenData } from 'src/models/auth'
+import { Notify } from 'quasar'
+import { AxiosError } from 'axios'
 
 
 //to do
@@ -57,33 +61,40 @@ async function ensurePasswordHashExists(defaultPlain = 'test'){
   }
 }
 
-function loginWithCredentials(email: string, password: string) {
-  // make it valid
-  if (!(email === 'test@example.com' && password === 'test')) {
-    throw new Error('Nesprávny username alebo heslo')
+async function loginWithCredentials(email: string, password: string) {
+  // TODO: try catch notification
+  try {
+    const token: TokenData = await authService.getToken({ email, password });
+    console.debug('got token', token);
+
+    const user: User = {
+      id: crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
+      name: 'Test Name',
+      username: 'Test username',
+      email: 'test@example.com',
+      currentState: UserStates.online
+    }
+
+    state.currentUser = user
+    state.token = token.token
+    state.expiresAt = Date.parse(token.expiresAt)
+
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({
+      token: state.token,
+      expiresAt: state.expiresAt
+    } satisfies TokenBundle))
+  } catch (e: unknown) {
+    if (
+      e instanceof AxiosError
+      && e.code === 'ERR_BAD_REQUEST'
+    ) {
+      // TODO: add types
+      for (const error of e.response?.data?.errors || []) {
+        Notify.create({ message: error.message, type: 'negative' })
+      }
+    }
   }
-
-  const user: User = {
-    id: crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
-    name: 'Test Name',
-    username: 'Test username',
-    email: 'test@example.com',
-    currentState: UserStates.online
-
-  }
-
-  const token = `fake.${btoa(user.username)}.${Math.random().toString(36).slice(2)}`
-  const ttlMinutes = 120
-  const expiresAt = now() + ttlMinutes * 60 * 1000
-
-  state.currentUser = user
-  state.token = token
-  state.expiresAt = expiresAt
-
-  localStorage.setItem(USER_KEY, JSON.stringify(user))
-  localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, expiresAt } satisfies TokenBundle))
-
-
 }
 
 function logout() {
