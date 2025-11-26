@@ -5,14 +5,12 @@ export default class extends BaseSchema {
   protected tableName = 'messages'
 
   async up() {
-    this.schema.alterTable(this.tableName, (table) => {
-      table.text(this.columnName).notNullable().defaultTo('')
-    })
+    // deprecated migration, skip
   }
 
   async down() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.dropColumn(this.columnName)
+      table.text(this.columnName).notNullable()
     })
   }
 }
