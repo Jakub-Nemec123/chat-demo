@@ -11,6 +11,7 @@
     <q-input
       autogrow
       @keydown.enter.exact.prevent="onSubmit"
+      @update:model-value="onInput"
       ref="inputField"
       standout
       type="textarea"
@@ -62,6 +63,7 @@ import { useElementBounding } from '@vueuse/core';
 
 const emit = defineEmits<{
   (e: 'submit', message: string): void
+  (e: 'typing'): void
 }>()
 
 const message: Ref<string> = ref<string>('');
@@ -140,6 +142,13 @@ const typedPreview = computed(() => {
   return s.length > 40 ? s.slice(0, 40) + '…' : s
 })
 
+
+function onInput(): void {
+  // Emit typing event when user types
+  if (message.value.trim()) {
+    emit('typing')
+  }
+}
 
 function onSubmit(): void {
   // submit the message above
