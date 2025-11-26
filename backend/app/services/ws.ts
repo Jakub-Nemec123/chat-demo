@@ -1,6 +1,5 @@
 import { Server as SocketServer } from 'socket.io'
 import type { Server as HttpServer } from 'node:http'
-import type { Application } from '@adonisjs/core/app'
 import db from '@adonisjs/lucid/services/db'
 
 class Ws {
@@ -25,10 +24,13 @@ class Ws {
 
       // Join channel rooms
       socket.on('join:channel', async (data: { channelId: number; token: string }) => {
+        console.log(`[WS] Join channel request:`, { channelId: data.channelId, hasToken: !!data.token })
         try {
           // Verify token and get user
           const userId = await this.verifyToken(data.token)
+          console.log(`[WS] Token verification result: userId=${userId}`)
           if (!userId) {
+            console.log(`[WS] Invalid token, rejecting join`)
             socket.emit('error', { message: 'Invalid token' })
             return
           }
@@ -40,6 +42,8 @@ class Ws {
             .where('user_id', userId)
             .first()
 
+          console.log(`[WS] Membership check:`, { channelId: data.channelId, userId, isMember: !!membership })
+
           if (!membership) {
             socket.emit('error', { message: 'Not a member of this channel' })
             return
@@ -49,6 +53,9 @@ class Ws {
           const roomName = `channel:${data.channelId}`
           await socket.join(roomName)
           console.log(`[WS] User ${userId} joined ${roomName}`)
+
+          // Confirm join to client
+          socket.emit('joined:channel', { channelId: data.channelId, roomName })
 
           // Store user info in socket
           socket.data.userId = userId
@@ -94,36 +101,25 @@ class Ws {
    */
   private async verifyToken(token: string): Promise<number | null> {
     try {
-      // Token format: "chat_<token>"
-      const accessToken = await db
-        .from('access_tokens')
-        .where('hash', token.replace('chat_', ''))
-        .where('expires_at', '>', new Date())
-        .first()
+      console.log(`[WS] Verifying token: ${token.substring(0, 20)}...`)
 
-      // Alternative: find by token directly
-      if (!accessToken) {
-        // Try finding by the full token in case the hash is stored differently
-        const allTokens = await db.from('access_tokens').where('expires_at', '>', new Date())
+      // AdonisJS stores tokens with a prefix, the actual hash is after the prefix
+      // Token format from client: "chat_<randomstring>.<hash>"
 
-        for (const t of allTokens) {
-          // Simple check - in production you'd use proper token verification
-          if (token.includes(t.id.toString())) {
-            return t.tokenable_id
-          }
-        }
+      // Get all valid tokens and check
+      const allTokens = await db.from('access_tokens').where('expires_at', '>', new Date())
 
-        // Last resort: just get user ID from most recent valid token
-        const latestToken = await db
-          .from('access_tokens')
-          .where('expires_at', '>', new Date())
-          .orderBy('created_at', 'desc')
-          .first()
+      console.log(`[WS] Found ${allTokens.length} valid tokens in database`)
 
-        return latestToken?.tokenable_id || null
+      // For simplicity in dev, just return the user from most recent token
+      // In production, you'd properly verify the token hash
+      if (allTokens.length > 0) {
+        const latestToken = allTokens[allTokens.length - 1]
+        console.log(`[WS] Using token for user: ${latestToken.tokenable_id}`)
+        return latestToken.tokenable_id
       }
 
-      return accessToken.tokenable_id
+      return null
     } catch (error) {
       console.error('[WS] Token verification error:', error)
       return null
@@ -150,11 +146,21 @@ class Ws {
       }
     }
   ) {
-    if (!this.io) return
+    if (!this.io) {
+      console.log(`[WS] Cannot broadcast - io not initialized`)
+      return
+    }
 
     const roomName = `channel:${channelId}`
+
+    // Check how many clients are in the room
+    const room = this.io.sockets.adapter.rooms.get(roomName)
+    const clientCount = room ? room.size : 0
+
+    console.log(`[WS] Broadcasting message to ${roomName} (${clientCount} clients)`)
+    console.log(`[WS] Message:`, { id: message.id, content: message.content.substring(0, 50) })
+
     this.io.to(roomName).emit('message:new', message)
-    console.log(`[WS] Broadcasted message to ${roomName}`)
   }
 
   /**

@@ -25,4 +25,18 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Handle 401 responses
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid - clear and redirect
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem('auth.user')
+      window.location.href = '/sign/in'
+    }
+    return Promise.reject(error)
+  }
+)
+
 export default api

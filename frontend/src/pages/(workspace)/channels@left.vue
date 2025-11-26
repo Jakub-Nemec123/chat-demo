@@ -1,41 +1,49 @@
 <template>
   <aside class="bg-black column full-height">
-    <div
-      class="
-        col-grow
-        column
-        q-px-md
-        q-py-lg
-        q-gutter-sm
-        scroll-vertical
-      "
-    >
+    <!-- Channel list -->
+    <div class="col-grow column q-px-md q-py-lg q-gutter-sm scroll-vertical">
+      <div v-if="channelsStore.isLoading" class="text-center q-pa-md">
+        <q-spinner color="primary" size="2em" />
+      </div>
+
       <router-link
+        v-else
         custom
         :key="channel.id"
-        v-for="channel in channels"
+        v-for="channel in channelsStore.sortedChannels"
         v-slot="{ href, isActive }"
         :to="{
           name: 'channels.show',
-          params: {
-            channel: channel.name,
-          },
+          params: { channel: channel.name },
         }"
       >
         <q-btn
           align="left"
           :color="isActive ? 'primary' : 'none'"
-          :class="{'is-new' : isNew(channel)}"
-          :label="'# ' + channel.name"
+          :class="{
+            'is-private': channel.privacy === 'PRIVATE',
+            'is-admin': channel.isAdmin
+          }"
           no-caps
           :to="href"
           unelevated
-        />
+        >
+          <q-icon
+            :name="channel.privacy === 'PRIVATE' ? 'lock' : 'tag'"
+            size="xs"
+            class="q-mr-sm"
+          />
+          {{ channel.name }}
+          <q-badge v-if="channel.isAdmin" color="amber" label="admin" class="q-ml-sm" />
+        </q-btn>
       </router-link>
+
+      <div v-if="!channelsStore.isLoading && channelsStore.channels.length === 0" class="text-grey-6 text-center q-pa-md">
+        No channels yet. Create one!
+      </div>
     </div>
 
-
-     <!-- ADD CHANNEL (+) -->
+    <!-- ADD CHANNEL (+) -->
     <q-separator />
     <div class="q-pa-sm">
       <q-btn
@@ -48,10 +56,10 @@
     </div>
 
     <!-- ACTIONS FOR ACTIVE CHANNEL (leave / delete) -->
-    <div v-if="activeChannel" class="q-pa-sm q-gutter-sm">
+    <div v-if="channelsStore.activeChannel" class="q-pa-sm q-gutter-sm">
       <q-separator class="q-mb-sm" />
       <q-btn
-        v-if="activeChannel.isAdmin"
+        v-if="channelsStore.isActiveChannelAdmin"
         outline
         color="negative"
         icon="delete"
@@ -60,7 +68,6 @@
         :loading="isDeleting"
         @click="confirmDeleteChannel"
       />
-
       <q-btn
         v-else
         outline
@@ -73,39 +80,27 @@
       />
     </div>
 
-
+    <!-- User bar -->
     <div class="userbar" v-if="auth.state.currentUser">
       <div class="userbar-left">
         <div class="userbar-info">
           <div class="name">{{ auth.state.currentUser.username }}</div>
           <div class="tag">{{ auth.state.currentUser.name }}</div>
         </div>
-
         <span
           class="presence-dot q-mr-sm"
           :class="{
-            //find out why it isnt showing colors
             'presence--online': auth.state.currentUser?.currentState === UserStates.online,
-            'presence--DND':    auth.state.currentUser?.currentState === UserStates.DND,
-            'presence--offline':auth.state.currentUser?.currentState === UserStates.offline
+            'presence--DND': auth.state.currentUser?.currentState === UserStates.DND,
+            'presence--offline': auth.state.currentUser?.currentState === UserStates.offline
           }"
         />
-        <p>{{ auth.state.currentUser.currentState }}</p>
       </div>
       <div class="q-gutter-x-sm">
-        <q-btn
-          dense flat icon="settings"
-          @click="handleSettings"
-          aria-label="Nastavenia"
-        />
-        <q-btn
-          dense flat icon="logout"
-          @click="handleLogout"
-          aria-label="Logout"
-        />
+        <q-btn dense flat icon="settings" @click="handleSettings" aria-label="Nastavenia" />
+        <q-btn dense flat icon="logout" @click="handleLogout" aria-label="Logout" />
       </div>
     </div>
-
 
     <!-- CREATE CHANNEL DIALOG -->
     <q-dialog v-model="showCreateDialog">
@@ -152,18 +147,12 @@
       <q-card style="min-width: 320px">
         <q-card-section class="text-h6">Delete channel?</q-card-section>
         <q-card-section>
-          Are you sure you want to delete <strong>#{{ activeChannel?.name }}</strong>?
+          Are you sure you want to delete <strong>#{{ channelsStore.activeChannel?.name }}</strong>?
           This will remove all messages and cannot be undone.
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            unelevated
-            color="negative"
-            label="Delete"
-            :loading="isDeleting"
-            @click="deleteChannel"
-          />
+          <q-btn unelevated color="negative" label="Delete" :loading="isDeleting" @click="deleteChannel" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -173,89 +162,63 @@
       <q-card style="min-width: 320px">
         <q-card-section class="text-h6">Leave channel?</q-card-section>
         <q-card-section>
-          Are you sure you want to leave <strong>#{{ activeChannel?.name }}</strong>?
+          Are you sure you want to leave <strong>#{{ channelsStore.activeChannel?.name }}</strong>?
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            unelevated
-            color="warning"
-            label="Leave"
-            :loading="isLeaving"
-            @click="leaveChannel"
-          />
+          <q-btn unelevated color="warning" label="Leave" :loading="isLeaving" @click="leaveChannel" />
         </q-card-actions>
       </q-card>
     </q-dialog>
-
   </aside>
 </template>
 
 <script setup lang="ts">
-import type { Channel } from 'src/models';
-import { ChannelPrivacy } from 'src/models';
-import { useRouter, useRoute } from 'vue-router';
-import { useAuth } from 'src/composables/useAuth';
-import { UserStates } from 'src/models';
-import { computed, ref, onMounted, reactive, watch } from 'vue';
-import { channelsService, type ChannelResponse } from 'src/services/channels';
-import { Notify } from 'quasar';
+import { useRouter, useRoute } from 'vue-router'
+import { useAuth } from 'src/composables/useAuth'
+import { UserStates } from 'src/models'
+import { computed, ref, reactive, onMounted, watch } from 'vue'
+import { useChannelsStore } from 'src/stores/channels'
+import { Notify } from 'quasar'
 
-const channels = ref<Channel[]>([])
+const router = useRouter()
+const route = useRoute()
+const auth = useAuth()
+const channelsStore = useChannelsStore()
 
-function transformChannel(ch: ChannelResponse): Channel {
-  return {
-    id: ch.id,
-    name: ch.slug,
-    type: ch.privacy === 'PUBLIC' ? ChannelPrivacy.public : ChannelPrivacy.private,
-    isAdmin: ch.isAdmin,
-    lastActivityAt: ch.lastActivityAt
-  }
-}
-
-// Load channels from API
-async function loadChannels() {
+// Load channels on mount
+onMounted(async () => {
   try {
-    const response = await channelsService.getChannels()
-    channels.value = response.map(transformChannel)
+    await channelsStore.fetchChannels()
   } catch (error) {
     console.error('Failed to load channels:', error)
-    Notify.create({
-      type: 'negative',
-      message: 'Failed to load channels'
-    })
   }
-}
-
-onMounted(async () => {
-  await loadChannels()
 })
 
-const router = useRouter();
-const route = useRoute();
-const auth = useAuth();
-
-//very simple solution
-//We need to find out how we will determine if user visited new channel
-//I guess we dont really want to store seen attribute in database
-const isNew = (ch: Channel): boolean =>{
-  return Number(ch.id) === 1
-}
-
-// Active channel based on route
-const activeChannel = computed(() =>
-  route.name === 'channels.show'
-    ? channels.value.find(c => c.name === String((route.params as any).channel)) ?? null
-    : null
+// Watch route to set active channel
+watch(
+  () => route.params.channel,
+  (channelName) => {
+    if (channelName && typeof channelName === 'string') {
+      const channel = channelsStore.findChannelByName(channelName)
+      if (channel) {
+        channelsStore.setActiveChannel(channel.id)
+      }
+    } else {
+      channelsStore.setActiveChannel(null)
+    }
+  },
+  { immediate: true }
 )
 
-async function handleSettings(){
-  await router.push({ name: 'settings.index' });
+// Navigation
+async function handleSettings() {
+  await router.push({ name: 'settings.index' })
 }
 
-async function handleLogout(){
-  auth.logout();
-  await router.replace({ name: 'sign.in' });
+async function handleLogout() {
+  auth.logout()
+  await router.replace({ name: 'sign.in' })
 }
 
 // ============ CREATE CHANNEL ============
@@ -266,7 +229,7 @@ const createForm = reactive<{ name: string; privacy: 'PUBLIC' | 'PRIVATE' }>({
   privacy: 'PUBLIC'
 })
 const privacyOptions = [
-  { label: 'Public',  value: 'PUBLIC' },
+  { label: 'Public', value: 'PUBLIC' },
   { label: 'Private', value: 'PRIVATE' }
 ]
 
@@ -284,34 +247,21 @@ async function submitCreate() {
 
   isCreating.value = true
   try {
-    const response = await channelsService.createChannel({
-      name: createForm.name,
-      privacy: createForm.privacy
-    })
-
-    // Add new channel to list
-    channels.value.unshift({
-      id: response.id,
-      name: response.slug,
-      type: response.privacy === 'PUBLIC' ? ChannelPrivacy.public : ChannelPrivacy.private,
-      isAdmin: response.isAdmin
-    })
-
+    const result = await channelsStore.joinOrCreateChannel(createForm.name, createForm.privacy)
     showCreateDialog.value = false
     resetCreateForm()
 
     Notify.create({
       type: 'positive',
-      message: `Channel #${response.slug} created`
+      message: result.created ? `Channel #${result.name} created` : `Joined #${result.name}`
     })
 
     // Navigate to new channel
     await router.push({
       name: 'channels.show',
-      params: { channel: response.slug }
+      params: { channel: result.name }
     })
   } catch (error: any) {
-    console.error('Failed to create channel:', error)
     Notify.create({
       type: 'negative',
       message: error.response?.data?.message || 'Failed to create channel'
@@ -330,16 +280,12 @@ function confirmDeleteChannel() {
 }
 
 async function deleteChannel() {
-  if (!activeChannel.value) return
+  if (!channelsStore.activeChannel) return
 
   isDeleting.value = true
   try {
-    await channelsService.deleteChannel(activeChannel.value.id)
-
-    // Remove from list
-    const channelName = activeChannel.value.name
-    channels.value = channels.value.filter(c => c.id !== activeChannel.value!.id)
-
+    const channelName = channelsStore.activeChannel.name
+    await channelsStore.deleteChannel(channelsStore.activeChannel.id)
     showDeleteDialog.value = false
 
     Notify.create({
@@ -348,20 +294,18 @@ async function deleteChannel() {
     })
 
     // Navigate to first available channel or index
-    if (channels.value.length > 0) {
+    if (channelsStore.channels.length > 0) {
       await router.push({
         name: 'channels.show',
-        params: { channel: channels.value[0].name }
+        params: { channel: channelsStore.channels[0].name }
       })
     } else {
       await router.push({ name: 'channels.index' })
     }
-  } catch (error: unknown) {
-    console.error('Failed to delete channel:', error)
+  } catch (error: any) {
     Notify.create({
       type: 'negative',
-      // message: error.response?.data?.message || 'Failed to delete channel'
-      message: 'Failed to delete channel',
+      message: error.response?.data?.message || 'Failed to delete channel'
     })
   } finally {
     isDeleting.value = false
@@ -377,16 +321,12 @@ function confirmLeaveChannel() {
 }
 
 async function leaveChannel() {
-  if (!activeChannel.value) return
+  if (!channelsStore.activeChannel) return
 
   isLeaving.value = true
   try {
-    await channelsService.leaveChannel(activeChannel.value.id)
-
-    // Remove from list
-    const channelName = activeChannel.value.name
-    channels.value = channels.value.filter(c => c.id !== activeChannel.value!.id)
-
+    const channelName = channelsStore.activeChannel.name
+    await channelsStore.leaveChannel(channelsStore.activeChannel.id)
     showLeaveDialog.value = false
 
     Notify.create({
@@ -395,16 +335,15 @@ async function leaveChannel() {
     })
 
     // Navigate to first available channel or index
-    if (channels.value.length > 0) {
+    if (channelsStore.channels.length > 0) {
       await router.push({
         name: 'channels.show',
-        params: { channel: channels.value[0].name }
+        params: { channel: channelsStore.channels[0].name }
       })
     } else {
       await router.push({ name: 'channels.index' })
     }
   } catch (error: any) {
-    console.error('Failed to leave channel:', error)
     Notify.create({
       type: 'negative',
       message: error.response?.data?.message || 'Failed to leave channel'
@@ -413,36 +352,14 @@ async function leaveChannel() {
     isLeaving.value = false
   }
 }
-
-// ============ NOTIFICATIONS (existing code) ============
-import { onUnmounted } from 'vue'
-import { AppVisibility } from 'quasar'
-
-let timer: number | null = null
-
-function tick() {
-  if (!AppVisibility.appVisible) {
-      Notify.create("Test notif")
-  }
-}
-
-onMounted(() => {
-  timer = window.setInterval(tick, 3_000)
-})
-
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
-  timer = null
-})
 </script>
 
 <style>
-
-.is-new{
-   border: 2px solid var(--q-primary);
+.is-private {
+  opacity: 0.9;
 }
 
-.userbar{
+.userbar {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -453,18 +370,11 @@ onUnmounted(() => {
   background: #0a0b0f;
 }
 
-.userbar-left{
+.userbar-left {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-}
-
-.avatar-skeleton {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #2a2d34;
 }
 
 .userbar-info {
@@ -484,36 +394,25 @@ onUnmounted(() => {
   color: #9aa0a6;
 }
 
-.presence-dot{
+.presence-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   display: inline-block;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, .25);
-}
-.body--dark .presence-dot{
-  box-shadow: 0 0 0 2px rgba(255,255,255,.12);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25);
 }
 
-.presence-dot.presence-online { background: green;}
-.presence-DND { background: var(--q-negative);}
-.presence-offline { background: var(--q-grey-6);}
-
-.settings-btn {
-  border: none;
-  background: transparent;
-  color: #c9c9c9;
-  font-size: 18px;
-  cursor: pointer;
-}
-.settings-btn:hover {
-  color: #ffffff;
+.body--dark .presence-dot {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
 }
 
-
-/* chat */
-.chat {
-  background-color: #14151b;
-  color: white;
+.presence--online {
+  background: #43a047;
+}
+.presence--DND {
+  background: var(--q-negative);
+}
+.presence--offline {
+  background: #757575;
 }
 </style>

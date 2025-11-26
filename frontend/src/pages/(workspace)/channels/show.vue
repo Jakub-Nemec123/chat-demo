@@ -1,274 +1,235 @@
 <template>
   <q-page class="column">
-    <div
-      class="col-grow column reverse q-px-md scroll-vertical"
-    >
-
+    <!-- Messages area -->
+    <div class="col-grow column reverse q-px-md scroll-vertical">
       <q-infinite-scroll
         reverse
         :offset="500"
         :disable="!hasMore"
-        @load="onLoad">
+        @load="onLoadMore"
+      >
         <template v-slot:loading>
           <div class="row justify-center q-my-md">
             <q-spinner color="primary" name="dots" size="40px" />
           </div>
         </template>
-        <!-- maybe turn into ordered list? -->
-        <div>
+
+        <div v-if="messagesStore.isLoading && messages.length === 0" class="text-center q-pa-xl">
+          <q-spinner color="primary" size="3em" />
+          <div class="q-mt-md text-grey-6">Loading messages...</div>
+        </div>
+
+        <div v-else-if="messages.length === 0" class="text-center q-pa-xl text-grey-6">
+          No messages yet. Start the conversation!
+        </div>
+
+        <div v-else>
           <channel-message
-            :key="message.id"
-            :message="message"
-            :class="{'mention': message.message === '@testuser' }"
             v-for="message in messages"
+            :key="message.id"
+            :message="transformMessage(message)"
+            :class="{ 'mention': isMention(message) }"
           />
         </div>
       </q-infinite-scroll>
     </div>
 
-    <!-- Typing indicator -->
-    <div v-if="typingUsers.length > 0" class="q-px-md q-py-xs text-grey-6 text-caption">
-      <q-spinner-dots size="1em" class="q-mr-xs" />
-      {{ typingText }}
+    <!-- Command result notification -->
+    <div v-if="commandResult" class="q-px-md q-py-sm bg-dark">
+      <q-banner
+        :class="commandResult.success ? 'bg-positive' : 'bg-negative'"
+        dense
+        rounded
+      >
+        <template v-slot:avatar>
+          <q-icon :name="commandResult.success ? 'check' : 'error'" />
+        </template>
+        {{ commandResult.message }}
+        <template v-slot:action>
+          <q-btn flat dense icon="close" @click="commandResult = null" />
+        </template>
+      </q-banner>
     </div>
 
+    <!-- Message input -->
     <div class="col-shrink q-pa-md">
-      <message-input
-        @submit="onSubmit"
-        @typing="onTyping"
-      />
+      <message-input @submit="onSubmit" />
     </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import type { Ref } from 'vue';
-import type { Message } from 'src/models';
-import { UserStates } from 'src/models';
-
-import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
-import { useInterface } from 'src/stores/interface';
-import ChannelMessage from 'components/ChannelMessage.vue';
-import MessageInput from 'components/MessageInput.vue';
-import { messagesService, type MessageResponse } from 'src/services/messages';
-import { channelsService } from 'src/services/channels';
-import { wsService, type WsMessage } from 'src/services/websocket';
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { useChannelsStore } from 'src/stores/channels'
+import { useMessagesStore, type Message } from 'src/stores/messages'
+import { useCommandsStore, type CommandResult } from 'src/stores/commands'
+import { useInterface } from 'src/stores/interface'
+import { useAuth } from 'src/composables/useAuth'
+import ChannelMessage from 'components/ChannelMessage.vue'
+import MessageInput from 'components/MessageInput.vue'
+import { UserStates } from 'src/models'
+import { Notify } from 'quasar'
 
 definePage({
   path: ':channel',
-});
-
-const appInterface = useInterface();
-const route = useRoute();
-
-const messages: Ref<Message[]> = ref<Message[]>([]);
-const hasMore = ref(true);
-const currentPage = ref(1);
-const isLoading = ref(false);
-const channelId = ref<number | null>(null);
-const typingUsers = ref<number[]>([]);
-
-const channelSlug = computed(() => String((route.params as any).channel));
-
-const typingText = computed(() => {
-  if (typingUsers.value.length === 0) return ''
-  if (typingUsers.value.length === 1) return 'Someone is typing...'
-  return `${typingUsers.value.length} people are typing...`
 })
 
-// Fetch channel ID from API based on slug
-async function fetchChannelId() {
-  try {
-    const channels = await channelsService.getChannels();
-    const channel = channels.find(c => c.slug === channelSlug.value);
-    if (channel) {
-      channelId.value = channel.id;
-    } else {
-      console.error('Channel not found:', channelSlug.value);
-      channelId.value = null;
-    }
-  } catch (error) {
-    console.error('Failed to fetch channels:', error);
-    channelId.value = null;
-  }
-}
+const route = useRoute()
+const channelsStore = useChannelsStore()
+const messagesStore = useMessagesStore()
+const commandsStore = useCommandsStore()
+const interfaceStore = useInterface()
+const auth = useAuth()
 
-function transformMessage(msg: MessageResponse): Message {
+const commandResult = ref<CommandResult | null>(null)
+
+// Get current channel ID from route
+const channelId = computed(() => {
+  const channelName = route.params.channel as string
+  const channel = channelsStore.findChannelByName(channelName)
+  return channel?.id || null
+})
+
+// Get messages for current channel
+const messages = computed(() => {
+  if (!channelId.value) return []
+  return messagesStore.getMessages(channelId.value)
+})
+
+// Check if there are more messages to load
+const hasMore = computed(() => {
+  if (!channelId.value) return false
+  return messagesStore.hasMoreMessages(channelId.value)
+})
+
+// Transform store message to component format
+function transformMessage(msg: Message) {
   return {
     id: String(msg.id),
     author: {
-      id: String(msg.user.id),
+      id: String(msg.userId),
       email: '',
-      name: `${msg.user.first_name || ''} ${msg.user.last_name || ''}`.trim() || msg.user.username,
+      name: `${msg.user.firstName || ''} ${msg.user.lastName || ''}`.trim() || msg.user.username,
       username: msg.user.username,
       currentState: UserStates.online,
     },
     message: msg.content,
-  };
-}
-
-function transformWsMessage(msg: WsMessage): Message {
-  return {
-    id: String(msg.id),
-    author: {
-      id: String(msg.user.id),
-      email: '',
-      name: `${msg.user.first_name || ''} ${msg.user.last_name || ''}`.trim() || msg.user.username,
-      username: msg.user.username,
-      currentState: UserStates.online,
-    },
-    message: msg.content,
-  };
-}
-
-async function loadMessages(page: number) {
-  if (isLoading.value || !channelId.value) return;
-
-  isLoading.value = true;
-  try {
-    const response = await messagesService.getMessages(channelId.value, page);
-
-    const transformedMessages = response.data.map(transformMessage);
-
-    if (page === 1) {
-      messages.value = transformedMessages.reverse();
-    } else {
-      messages.value.unshift(...transformedMessages.reverse());
-    }
-
-    hasMore.value = response.meta.current_page < response.meta.last_page;
-    currentPage.value = response.meta.current_page;
-  } catch (error) {
-    console.error('Failed to load messages:', error);
-    hasMore.value = false;
-  } finally {
-    isLoading.value = false;
   }
 }
 
-// Setup WebSocket
-function setupWebSocket() {
-  // Connect if not connected
-  wsService.connect();
+// Check if message mentions current user
+function isMention(msg: Message): boolean {
+  const currentUsername = auth.state.currentUser?.username
+  if (!currentUsername) return false
+  return msg.content.includes(`@${currentUsername}`)
+}
 
-  // Handle new messages
-  wsService.onMessage((wsMessage: WsMessage) => {
-    // Only add if it's for current channel and not already in list
-    if (wsMessage.channelId === channelId.value) {
-      const exists = messages.value.find(m => m.id === String(wsMessage.id));
-      if (!exists) {
-        messages.value.push(transformWsMessage(wsMessage));
+// Load messages when channel changes
+async function loadMessages() {
+  if (!channelId.value) return
+
+  try {
+    await messagesStore.fetchMessages(channelId.value, 1)
+  } catch (error) {
+    console.error('Failed to load messages:', error)
+    Notify.create({
+      type: 'negative',
+      message: 'Failed to load messages'
+    })
+  }
+}
+
+// Load more messages (infinite scroll)
+async function onLoadMore(index: number, done: () => void) {
+  if (!channelId.value || !hasMore.value) {
+    done()
+    return
+  }
+
+  try {
+    await messagesStore.loadMoreMessages(channelId.value)
+  } catch (error) {
+    console.error('Failed to load more messages:', error)
+  }
+
+  done()
+}
+
+// Handle message/command submission
+async function onSubmit(input: string) {
+  if (!input.trim()) return
+
+  // Check if it's a command
+  if (commandsStore.isCommand(input)) {
+    commandResult.value = null
+
+    try {
+      const result = await commandsStore.executeCommand(input, channelId.value)
+      commandResult.value = result
+
+      // Handle special command results
+      if (result.data?.showInSidebar) {
+        interfaceStore.openRightSidebar()
+      }
+
+      // Auto-hide success messages after 3 seconds
+      if (result.success) {
+        setTimeout(() => {
+          if (commandResult.value === result) {
+            commandResult.value = null
+          }
+        }, 3000)
+      }
+    } catch (error: any) {
+      commandResult.value = {
+        success: false,
+        message: error.message || 'Command failed'
       }
     }
-  });
-}
-
-// Join channel room when channelId changes
-watch(channelId, (newId, oldId) => {
-  if (oldId) {
-    wsService.leaveChannel(oldId);
-  }
-  if (newId) {
-    wsService.joinChannel(newId);
-  }
-});
-
-// Watch for channel changes and reload
-watch(channelSlug, async () => {
-  messages.value = [];
-  hasMore.value = true;
-  currentPage.value = 1;
-  channelId.value = null;
-  typingUsers.value = [];
-  await fetchChannelId();
-  if (channelId.value) {
-    await loadMessages(1);
-  }
-}, { immediate: false });
-
-onMounted(async () => {
-  setupWebSocket();
-  await fetchChannelId();
-  if (channelId.value) {
-    await loadMessages(1);
-    wsService.joinChannel(channelId.value);
-  }
-});
-
-onUnmounted(() => {
-  if (channelId.value) {
-    wsService.leaveChannel(channelId.value);
-  }
-});
-
-function onLoad(index: number, done: () => void) {
-  if (!hasMore.value || !channelId.value) {
-    done();
-    return;
+    return
   }
 
-  void loadMessages(currentPage.value + 1).then(() => {
-    done();
-  });
-}
-
-// Typing indicator handling
-let typingTimeout: ReturnType<typeof setTimeout> | null = null;
-
-function onTyping() {
-  if (!channelId.value) return;
-
-  wsService.startTyping(channelId.value);
-
-  // Clear previous timeout
-  if (typingTimeout) {
-    clearTimeout(typingTimeout);
-  }
-
-  // Stop typing after 2 seconds of no input
-  typingTimeout = setTimeout(() => {
-    if (channelId.value) {
-      wsService.stopTyping(channelId.value);
-    }
-  }, 2000);
-}
-
-async function onSubmit(message: string): Promise<void> {
-  console.log('submitted');
-
-  // Stop typing indicator
-  if (channelId.value) {
-    wsService.stopTyping(channelId.value);
-  }
-  if (typingTimeout) {
-    clearTimeout(typingTimeout);
-  }
-
-  if (message === '/list') {
-    console.log('list requested');
-    appInterface.toggleSidebar('right');
-    return;
-  }
-
+  // Regular message
   if (!channelId.value) {
-    console.error('No channel ID');
-    return;
+    Notify.create({
+      type: 'negative',
+      message: 'No channel selected'
+    })
+    return
   }
 
-  // Submit message to API
-  // Note: The message will be added via WebSocket broadcast
   try {
-    await messagesService.createMessage(channelId.value, message);
-    // Message will be added via WebSocket event
-  } catch (error) {
-    console.error('Failed to send message:', error);
+    await messagesStore.sendMessage(channelId.value, input)
+    // Update channel activity
+    channelsStore.updateChannelActivity(channelId.value)
+  } catch (error: any) {
+    Notify.create({
+      type: 'negative',
+      message: error.response?.data?.message || 'Failed to send message'
+    })
   }
 }
+
+// Watch for channel changes
+watch(channelId, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    loadMessages()
+    channelsStore.setActiveChannel(newId)
+  }
+}, { immediate: true })
+
+// Initial load
+onMounted(() => {
+  if (channelId.value) {
+    loadMessages()
+  }
+})
 </script>
 
-<style scoped >
-.mention{
-  background-color: rgb(143, 49, 172);
+<style scoped>
+.mention {
+  background-color: rgba(156, 39, 176, 0.3);
+  border-left: 3px solid #9c27b0;
 }
 </style>

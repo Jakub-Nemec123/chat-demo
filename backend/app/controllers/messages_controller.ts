@@ -2,28 +2,28 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Message from '#models/message'
 import Channel from '#models/channel'
 import { createMessageValidator } from '#validators/message'
+import db from '@adonisjs/lucid/services/db'
 
 export default class MessagesController {
-  async index({ auth, params, response }: HttpContext) {
-    // const userId = params.userId
+  /**
+   * GET /channels/:channelId/messages
+   */
+  async index({ auth, params, request, response }: HttpContext) {
     const userId = auth.getUserOrFail().id
     const channelId = params.channelId
-    const page = params.page || 1
+    const page = request.input('page', 1)
 
     // Check if user is a member
-    const channel = await Channel.query()
-      .where('id', channelId)
-      .preload('users' as any, (query: any) => {
-        query.where('users.id', userId)
-      })
-      .firstOrFail()
+    const membership = await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userId)
+      .first()
 
-    // If user is not a member, deny access
-    if ((channel as any).users.length === 0) {
+    if (!membership) {
       return response.forbidden({ message: 'You are not a member of this channel' })
     }
 
-    // Get paginated messages
     const messages = await Message.query()
       .where('channel_id', channelId)
       .preload('user', (query) => {
@@ -35,26 +35,26 @@ export default class MessagesController {
     return response.ok(messages)
   }
 
+  /**
+   * POST /channels/:channelId/messages
+   */
   async store({ auth, params, request, response }: HttpContext) {
-    // const userId = params.userId
     const userId = auth.getUserOrFail().id
     const channelId = params.channelId
-    const payload = await createMessageValidator.validate(request.all())
+    const payload = await request.validateUsing(createMessageValidator)
 
     // Check if user is a member
-    const channel = await Channel.query()
-      .where('id', channelId)
-      .preload('users' as any, (query: any) => {
-        query.where('users.id', userId)
-      })
-      .firstOrFail()
+    const membership = await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userId)
+      .first()
 
-    // If user is not a member, deny access
-    if ((channel as any).users.length === 0) {
+    if (!membership) {
       return response.forbidden({ message: 'You are not a member of this channel' })
     }
 
-    // Create the message
+    // Create message
     const message = await Message.create({
       userId: userId,
       channelId: channelId,
@@ -65,6 +65,24 @@ export default class MessagesController {
       query.select('id', 'username', 'first_name', 'last_name')
     })
 
-    return response.created(message)
+    // Update channel's updatedAt for activity tracking
+    await Channel.query().where('id', channelId).update({ updated_at: new Date() })
+
+    // TODO: WebSocket broadcast here
+
+    return response.created({
+      id: message.id,
+      userId: message.userId,
+      channelId: message.channelId,
+      content: message.content,
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+      user: {
+        id: message.user.id,
+        username: message.user.username,
+        firstName: message.user.first_name,
+        lastName: message.user.last_name,
+      },
+    })
   }
 }

@@ -8,20 +8,13 @@ export const createChannelValidator = vine.compile(
       .trim()
       .minLength(1)
       .maxLength(50)
-      .regex(/^[a-z0-9-]+$/), // slug format: lowercase, numbers, hyphens only
-    privacy: vine.enum(Object.values(ChannelPrivacy)),
+      .regex(/^[a-z0-9-]+$/),
+    privacy: vine.enum(Object.values(ChannelPrivacy)).optional(),
   })
 )
 
-export const updateChannelValidator = vine.compile(
+export const inviteUserValidator = vine.compile(
   vine.object({
-    name: vine
-      .string()
-      .trim()
-      .minLength(1)
-      .maxLength(50)
-      .regex(/^[a-z0-9-]+$/)
-      .optional(),
-    privacy: vine.enum(Object.values(ChannelPrivacy)).optional(),
+    username: vine.string().trim().minLength(1),
   })
 )

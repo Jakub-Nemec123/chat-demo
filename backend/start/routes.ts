@@ -3,25 +3,30 @@ import { middleware } from '#start/kernel'
 
 const SessionsController = () => import('#controllers/sessions_controller')
 const UsersController = () => import('#controllers/users_controller')
-const MessagesController = () => import('#controllers/messages_controller')
 const ChannelsController = () => import('#controllers/channels_controller')
+const MessagesController = () => import('#controllers/messages_controller')
 
-// routes for inactive login
+// Public routes (no auth)
 router.group(() => {
   router.resource('users', UsersController).only(['store'])
   router.resource('sessions', SessionsController).only(['store'])
 })
 
-// routes for active login
+// Protected routes (auth required)
 router
   .group(() => {
-    // Channels
+    // Channels CRUD
     router.get('channels', [ChannelsController, 'index'])
     router.post('channels', [ChannelsController, 'store'])
     router.get('channels/:channelId', [ChannelsController, 'show'])
     router.delete('channels/:channelId', [ChannelsController, 'destroy'])
-    router.post('channels/:channelId/join', [ChannelsController, 'join'])
+
+    // Channel membership actions
     router.post('channels/:channelId/leave', [ChannelsController, 'leave'])
+    router.post('channels/:channelId/invite', [ChannelsController, 'invite'])
+    router.post('channels/:channelId/kick', [ChannelsController, 'kick'])
+    router.post('channels/:channelId/revoke', [ChannelsController, 'revoke'])
+    router.get('channels/:channelId/members', [ChannelsController, 'members'])
 
     // Messages
     router.get('channels/:channelId/messages', [MessagesController, 'index'])

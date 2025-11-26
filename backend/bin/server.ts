@@ -36,6 +36,14 @@ new Ignitor(APP_ROOT, { importer: IMPORTER })
     })
     app.listen('SIGTERM', () => app.terminate())
     app.listenIf(app.managedByPm2, 'SIGINT', () => app.terminate())
+
+    // Initialize WebSocket after HTTP server is ready
+    app.ready(async () => {
+      const { default: Ws } = await import('#services/ws')
+      const server = await app.container.make('server')
+      Ws.boot(server.getNodeServer())
+      console.log('[WS] WebSocket server initialized')
+    })
   })
   .httpServer()
   .start()

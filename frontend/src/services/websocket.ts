@@ -1,4 +1,4 @@
-import { io, type Socket } from 'socket.io-client'
+import { io, Socket } from 'socket.io-client'
 import { ref, type Ref } from 'vue'
 
 const TOKEN_KEY = 'auth.token'
@@ -42,8 +42,11 @@ class WebSocketService {
    */
   connect() {
     if (this.socket?.connected) {
+      console.log('[WS Client] Already connected')
       return
     }
+
+    console.log('[WS Client] Connecting to server...')
 
     this.socket = io('http://127.0.0.1:3333', {
       transports: ['websocket', 'polling'],
@@ -51,28 +54,34 @@ class WebSocketService {
     })
 
     this.socket.on('connect', () => {
-      console.log('[WS] Connected:', this.socket?.id)
+      console.log('[WS Client] Connected:', this.socket?.id)
       this.isConnected.value = true
 
       // Rejoin channel if we were in one
       if (this.currentChannelId) {
+        console.log('[WS Client] Rejoining channel:', this.currentChannelId)
         this.joinChannel(this.currentChannelId)
       }
     })
 
     this.socket.on('disconnect', () => {
-      console.log('[WS] Disconnected')
+      console.log('[WS Client] Disconnected')
       this.isConnected.value = false
     })
 
     this.socket.on('connect_error', (error) => {
-      console.error('[WS] Connection error:', error)
+      console.error('[WS Client] Connection error:', error)
       this.isConnected.value = false
+    })
+
+    // Confirmation of joining channel
+    this.socket.on('joined:channel', (data: { channelId: number; roomName: string }) => {
+      console.log('[WS Client] Successfully joined channel:', data)
     })
 
     // Message events
     this.socket.on('message:new', (message: WsMessage) => {
-      console.log('[WS] New message:', message)
+      console.log('[WS Client] Received new message:', message)
       if (this.onMessageCallback) {
         this.onMessageCallback(message)
       }
@@ -80,6 +89,7 @@ class WebSocketService {
 
     // Typing events
     this.socket.on('user:typing', (data: TypingUser) => {
+      console.log('[WS Client] User typing:', data)
       const exists = this.typingUsers.value.find(
         (u) => u.userId === data.userId && u.channelId === data.channelId
       )
@@ -89,6 +99,7 @@ class WebSocketService {
     })
 
     this.socket.on('user:stopped_typing', (data: TypingUser) => {
+      console.log('[WS Client] User stopped typing:', data)
       this.typingUsers.value = this.typingUsers.value.filter(
         (u) => !(u.userId === data.userId && u.channelId === data.channelId)
       )
@@ -96,28 +107,28 @@ class WebSocketService {
 
     // Channel events
     this.socket.on('channel:user_joined', (data: { channelId: number; user: { id: number; username: string } }) => {
-      console.log('[WS] User joined channel:', data)
+      console.log('[WS Client] User joined channel:', data)
       if (this.onUserJoinedCallback) {
         this.onUserJoinedCallback(data)
       }
     })
 
     this.socket.on('channel:user_left', (data: { channelId: number; userId: number }) => {
-      console.log('[WS] User left channel:', data)
+      console.log('[WS Client] User left channel:', data)
       if (this.onUserLeftCallback) {
         this.onUserLeftCallback(data)
       }
     })
 
     this.socket.on('channel:deleted', (data: { channelId: number }) => {
-      console.log('[WS] Channel deleted:', data)
+      console.log('[WS Client] Channel deleted:', data)
       if (this.onChannelDeletedCallback) {
         this.onChannelDeletedCallback(data)
       }
     })
 
     this.socket.on('error', (error: { message: string }) => {
-      console.error('[WS] Error:', error.message)
+      console.error('[WS Client] Server error:', error.message)
     })
   }
 
@@ -137,18 +148,18 @@ class WebSocketService {
    * Join a channel room
    */
   joinChannel(channelId: number) {
-    if (!this.socket) {
-      console.warn('[WS] Not connected, connecting first...')
+    if (!this.socket?.connected) {
+      console.warn('[WS Client] Not connected, connecting first...')
       this.connect()
       // Wait a bit for connection then retry
-      setTimeout(() => this.joinChannel(channelId), 500)
+      setTimeout(() => this.joinChannel(channelId), 1000)
       return
     }
 
     // Get token from localStorage
     const tokenRaw = localStorage.getItem(TOKEN_KEY)
     if (!tokenRaw) {
-      console.error('[WS] No auth token found')
+      console.error('[WS Client] No auth token found')
       return
     }
 
@@ -157,7 +168,7 @@ class WebSocketService {
       const tokenBundle = JSON.parse(tokenRaw)
       token = tokenBundle.token
     } catch {
-      console.error('[WS] Invalid token data')
+      console.error('[WS Client] Invalid token data')
       return
     }
 
@@ -167,8 +178,8 @@ class WebSocketService {
     }
 
     this.currentChannelId = channelId
+    console.log('[WS Client] Emitting join:channel', { channelId, tokenLength: token.length })
     this.socket.emit('join:channel', { channelId, token })
-    console.log('[WS] Joining channel:', channelId)
   }
 
   /**
@@ -177,11 +188,11 @@ class WebSocketService {
   leaveChannel(channelId: number) {
     if (!this.socket) return
 
+    console.log('[WS Client] Leaving channel:', channelId)
     this.socket.emit('leave:channel', { channelId })
     if (this.currentChannelId === channelId) {
       this.currentChannelId = null
     }
-    console.log('[WS] Left channel:', channelId)
   }
 
   /**
@@ -238,3 +249,4 @@ class WebSocketService {
 
 // Export singleton instance
 export const wsService = new WebSocketService()
+

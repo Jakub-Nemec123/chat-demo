@@ -1,20 +1,20 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Channel from '#models/channel'
+import User from '#models/user'
 import Message from '#models/message'
 import db from '@adonisjs/lucid/services/db'
-import { createChannelValidator } from '#validators/channel'
+import { createChannelValidator, inviteUserValidator } from '#validators/channel'
 import { ChannelAlerts } from '#contracts/channel_alerts'
+import { ChannelPrivacy } from '#contracts/channel_privacy'
 
 export default class ChannelsController {
   /**
    * GET /channels
    * Returns all channels where the user is a member
-   * Includes membership info (isAdmin, alerts) and last activity
    */
   async index({ auth, response }: HttpContext) {
     const userId = auth.getUserOrFail().id
 
-    // Get all channels where user is a member with pivot data
     const channels = await Channel.query()
       .whereHas('users', (query) => {
         query.where('users.id', userId)
@@ -24,7 +24,6 @@ export default class ChannelsController {
       })
       .orderBy('updated_at', 'desc')
 
-    // Get last message date for each channel to check activity
     const channelIds = channels.map((c) => c.id)
     const lastMessages = await Message.query()
       .whereIn('channel_id', channelIds)
@@ -36,22 +35,18 @@ export default class ChannelsController {
       lastMessages.map((m) => [m.channelId, m.$extras.last_message_at])
     )
 
-    // Format response with membership info
     const result = channels.map((channel) => {
-      const membership = channel.users[0]?.$extras.pivot_is_admin
-      const alerts = channel.users[0]?.$extras.pivot_alerts
-      const joinedAt = channel.users[0]?.$extras.pivot_created_at
-
+      const pivot = channel.users[0]?.$extras
       return {
         id: channel.id,
-        slug: channel.slug,
+        name: channel.slug,
         privacy: channel.privacy,
         createdAt: channel.createdAt,
         updatedAt: channel.updatedAt,
         lastActivityAt: lastMessageMap.get(channel.id) || channel.createdAt,
-        isAdmin: membership || false,
-        alerts: alerts || ChannelAlerts.ALL,
-        joinedAt: joinedAt,
+        isAdmin: pivot?.pivot_is_admin || false,
+        alerts: pivot?.pivot_alerts || ChannelAlerts.ALL,
+        joinedAt: pivot?.pivot_created_at,
       }
     })
 
@@ -60,35 +55,29 @@ export default class ChannelsController {
 
   /**
    * GET /channels/:channelId
-   * Returns channel details if user is a member
    */
   async show({ auth, params, response }: HttpContext) {
     const userId = auth.getUserOrFail().id
     const channelId = params.channelId
 
-    // Get channel
     const channel = await Channel.findOrFail(channelId)
 
-    // Check membership
     const userMembership = await db
       .from('channel_users')
       .where('channel_id', channelId)
       .where('user_id', userId)
       .first()
 
-    // For private channels, user must be a member
-    if (channel.privacy === 'PRIVATE' && !userMembership) {
+    if (channel.privacy === ChannelPrivacy.PRIVATE && !userMembership) {
       return response.forbidden({ message: 'You are not a member of this private channel' })
     }
 
-    // Get member count
     const memberCount = await db
       .from('channel_users')
       .where('channel_id', channelId)
       .count('* as total')
       .first()
 
-    // Get last activity (last message date)
     const lastMessage = await Message.query()
       .where('channel_id', channelId)
       .orderBy('created_at', 'desc')
@@ -96,7 +85,7 @@ export default class ChannelsController {
 
     return response.ok({
       id: channel.id,
-      slug: channel.slug,
+      name: channel.slug,
       privacy: channel.privacy,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,
@@ -110,25 +99,80 @@ export default class ChannelsController {
 
   /**
    * POST /channels
-   * Creates a new channel - creator becomes admin
+   * Create channel or join existing (for /join command)
    */
   async store({ auth, request, response }: HttpContext) {
     const userId = auth.getUserOrFail().id
     const payload = await request.validateUsing(createChannelValidator)
+    const privacy = payload.privacy || ChannelPrivacy.PUBLIC
 
-    // Check if channel name (slug) already exists
-    const existingChannel = await Channel.findBy('slug', payload.name)
-    if (existingChannel) {
-      return response.conflict({ message: 'Channel with this name already exists' })
+    // Check if channel exists
+    let channel = await Channel.findBy('slug', payload.name)
+
+    if (channel) {
+      // Channel exists - try to join
+      if (channel.privacy === ChannelPrivacy.PRIVATE) {
+        return response.forbidden({ message: 'Cannot join private channel without invitation' })
+      }
+
+      // Check if already member
+      const existing = await db
+        .from('channel_users')
+        .where('channel_id', channel.id)
+        .where('user_id', userId)
+        .first()
+
+      if (existing) {
+        return response.ok({
+          id: channel.id,
+          name: channel.slug,
+          privacy: channel.privacy,
+          isAdmin: existing.is_admin,
+          isMember: true,
+          joined: false,
+          message: 'Already a member',
+        })
+      }
+
+      // Check for ban
+      const banCount = await db
+        .from('channel_kicks')
+        .where('channel_id', channel.id)
+        .where('user_id', userId)
+        .count('* as total')
+        .first()
+
+      if (Number(banCount?.total) >= 3) {
+        return response.forbidden({ message: 'You are banned from this channel' })
+      }
+
+      // Join channel
+      await db.table('channel_users').insert({
+        channel_id: channel.id,
+        user_id: userId,
+        is_admin: false,
+        alerts: ChannelAlerts.ALL,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+
+      return response.ok({
+        id: channel.id,
+        name: channel.slug,
+        privacy: channel.privacy,
+        isAdmin: false,
+        isMember: true,
+        joined: true,
+        message: 'Joined channel',
+      })
     }
 
-    // Create channel
-    const channel = await Channel.create({
+    // Create new channel
+    channel = await Channel.create({
       slug: payload.name,
-      privacy: payload.privacy,
+      privacy: privacy,
     })
 
-    // Add creator as admin member
     await db.table('channel_users').insert({
       channel_id: channel.id,
       user_id: userId,
@@ -140,27 +184,24 @@ export default class ChannelsController {
 
     return response.created({
       id: channel.id,
-      slug: channel.slug,
+      name: channel.slug,
       privacy: channel.privacy,
-      createdAt: channel.createdAt,
-      updatedAt: channel.updatedAt,
       isAdmin: true,
       isMember: true,
+      created: true,
     })
   }
 
   /**
    * DELETE /channels/:channelId
-   * Deletes a channel - only admin can delete
+   * /quit command - admin deletes channel
    */
   async destroy({ auth, params, response }: HttpContext) {
     const userId = auth.getUserOrFail().id
     const channelId = params.channelId
 
-    // Get channel
     const channel = await Channel.findOrFail(channelId)
 
-    // Check if user is admin
     const membership = await db
       .from('channel_users')
       .where('channel_id', channelId)
@@ -171,25 +212,20 @@ export default class ChannelsController {
       return response.forbidden({ message: 'Only channel admin can delete the channel' })
     }
 
-    // Delete channel (cascade will handle messages and channel_users)
     await channel.delete()
-
-    return response.ok({ message: 'Channel deleted successfully' })
+    return response.ok({ message: 'Channel deleted' })
   }
 
   /**
    * POST /channels/:channelId/leave
-   * Leave a channel
-   * If admin leaves and there are other members, transfer admin to oldest member
+   * /cancel command
    */
   async leave({ auth, params, response }: HttpContext) {
     const userId = auth.getUserOrFail().id
     const channelId = params.channelId
 
-    // Get channel
     const channel = await Channel.findOrFail(channelId)
 
-    // Check if user is a member
     const membership = await db
       .from('channel_users')
       .where('channel_id', channelId)
@@ -200,22 +236,19 @@ export default class ChannelsController {
       return response.badRequest({ message: 'You are not a member of this channel' })
     }
 
-    // Get member count
     const memberCount = await db
       .from('channel_users')
       .where('channel_id', channelId)
       .count('* as total')
       .first()
 
-    const totalMembers = Number(memberCount?.total) || 0
-
-    // If user is the only member, delete the channel
-    if (totalMembers === 1) {
+    // If admin leaves and is only member, delete channel
+    if (membership.is_admin && Number(memberCount?.total) === 1) {
       await channel.delete()
-      return response.ok({ message: 'Channel deleted as you were the last member' })
+      return response.ok({ message: 'Channel deleted (you were the last admin)', deleted: true })
     }
 
-    // If user is admin, transfer admin to the oldest member
+    // If admin leaves, transfer to oldest member
     if (membership.is_admin) {
       const oldestMember = await db
         .from('channel_users')
@@ -233,48 +266,267 @@ export default class ChannelsController {
       }
     }
 
-    // Remove user from channel
-    await db.from('channel_users').where('channel_id', channelId).where('user_id', userId).delete()
-    return response.ok({ message: 'Successfully left the channel' })
+    await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userId)
+      .delete()
+
+    return response.ok({ message: 'Left channel', deleted: false })
   }
 
   /**
-   * POST /channels/:channelId/join
-   * Join a public channel
+   * POST /channels/:channelId/invite
+   * /invite nickName command
    */
-  async join({ auth, params, response }: HttpContext) {
+  async invite({ auth, params, request, response }: HttpContext) {
     const userId = auth.getUserOrFail().id
     const channelId = params.channelId
+    const payload = await request.validateUsing(inviteUserValidator)
 
-    // Get channel
     const channel = await Channel.findOrFail(channelId)
 
-    // Check if channel is public
-    if (channel.privacy === 'PRIVATE') {
-      return response.forbidden({ message: 'Cannot join a private channel without invitation' })
-    }
-
-    // Check if already a member
-    const existingMembership = await db
+    // Check if inviter is member
+    const inviterMembership = await db
       .from('channel_users')
       .where('channel_id', channelId)
       .where('user_id', userId)
       .first()
 
+    if (!inviterMembership) {
+      return response.forbidden({ message: 'You are not a member of this channel' })
+    }
+
+    // For private channels, only admin can invite
+    if (channel.privacy === ChannelPrivacy.PRIVATE && !inviterMembership.is_admin) {
+      return response.forbidden({ message: 'Only admin can invite to private channel' })
+    }
+
+    // Find user to invite
+    const userToInvite = await User.findBy('username', payload.username)
+    if (!userToInvite) {
+      return response.notFound({ message: 'User not found' })
+    }
+
+    // Check if already member
+    const existingMembership = await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userToInvite.id)
+      .first()
+
     if (existingMembership) {
-      return response.badRequest({ message: 'You are already a member of this channel' })
+      return response.ok({ message: 'User is already a member' })
+    }
+
+    // Clear any kicks (admin inviting restores access)
+    if (inviterMembership.is_admin) {
+      await db
+        .from('channel_kicks')
+        .where('channel_id', channelId)
+        .where('user_id', userToInvite.id)
+        .delete()
     }
 
     // Add user to channel
     await db.table('channel_users').insert({
       channel_id: channelId,
-      user_id: userId,
+      user_id: userToInvite.id,
       is_admin: false,
       alerts: ChannelAlerts.ALL,
       created_at: new Date(),
       updated_at: new Date(),
     })
 
-    return response.ok({ message: 'Successfully joined the channel' })
+    return response.ok({
+      message: `${payload.username} has been invited`,
+      userId: userToInvite.id,
+      username: userToInvite.username,
+    })
+  }
+
+  /**
+   * POST /channels/:channelId/kick
+   * /kick nickName command
+   */
+  async kick({ auth, params, request, response }: HttpContext) {
+    const userId = auth.getUserOrFail().id
+    const channelId = params.channelId
+    const payload = await request.validateUsing(inviteUserValidator)
+
+    const channel = await Channel.findOrFail(channelId)
+
+    const kickerMembership = await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userId)
+      .first()
+
+    if (!kickerMembership) {
+      return response.forbidden({ message: 'You are not a member of this channel' })
+    }
+
+    const userToKick = await User.findBy('username', payload.username)
+    if (!userToKick) {
+      return response.notFound({ message: 'User not found' })
+    }
+
+    const targetMembership = await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userToKick.id)
+      .first()
+
+    if (!targetMembership) {
+      return response.badRequest({ message: 'User is not a member of this channel' })
+    }
+
+    // Admin kick = permanent ban
+    if (kickerMembership.is_admin) {
+      // Remove from channel
+      await db
+        .from('channel_users')
+        .where('channel_id', channelId)
+        .where('user_id', userToKick.id)
+        .delete()
+
+      // Add 3 kicks to ensure ban
+      for (let i = 0; i < 3; i++) {
+        await db.table('channel_kicks').insert({
+          channel_id: channelId,
+          user_id: userToKick.id,
+          kicked_by: userId,
+          created_at: new Date(),
+        })
+      }
+
+      return response.ok({
+        message: `${payload.username} has been permanently kicked`,
+        permanent: true,
+      })
+    }
+
+    // Regular member kick - add one kick vote
+    // Check if already kicked by this user
+    const existingKick = await db
+      .from('channel_kicks')
+      .where('channel_id', channelId)
+      .where('user_id', userToKick.id)
+      .where('kicked_by', userId)
+      .first()
+
+    if (existingKick) {
+      return response.badRequest({ message: 'You already voted to kick this user' })
+    }
+
+    await db.table('channel_kicks').insert({
+      channel_id: channelId,
+      user_id: userToKick.id,
+      kicked_by: userId,
+      created_at: new Date(),
+    })
+
+    // Count kicks
+    const kickCount = await db
+      .from('channel_kicks')
+      .where('channel_id', channelId)
+      .where('user_id', userToKick.id)
+      .count('* as total')
+      .first()
+
+    const totalKicks = Number(kickCount?.total) || 0
+
+    if (totalKicks >= 3) {
+      // Remove from channel
+      await db
+        .from('channel_users')
+        .where('channel_id', channelId)
+        .where('user_id', userToKick.id)
+        .delete()
+
+      return response.ok({
+        message: `${payload.username} has been kicked (3 votes reached)`,
+        permanent: true,
+        kickCount: totalKicks,
+      })
+    }
+
+    return response.ok({
+      message: `Vote recorded (${totalKicks}/3)`,
+      permanent: false,
+      kickCount: totalKicks,
+    })
+  }
+
+  /**
+   * POST /channels/:channelId/revoke
+   * /revoke nickName command (admin only, private channels)
+   */
+  async revoke({ auth, params, request, response }: HttpContext) {
+    const userId = auth.getUserOrFail().id
+    const channelId = params.channelId
+    const payload = await request.validateUsing(inviteUserValidator)
+
+    const channel = await Channel.findOrFail(channelId)
+
+    const membership = await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userId)
+      .first()
+
+    if (!membership || !membership.is_admin) {
+      return response.forbidden({ message: 'Only admin can revoke access' })
+    }
+
+    const userToRevoke = await User.findBy('username', payload.username)
+    if (!userToRevoke) {
+      return response.notFound({ message: 'User not found' })
+    }
+
+    // Remove from channel
+    await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userToRevoke.id)
+      .delete()
+
+    return response.ok({ message: `${payload.username} access revoked` })
+  }
+
+  /**
+   * GET /channels/:channelId/members
+   * /list command
+   */
+  async members({ auth, params, response }: HttpContext) {
+    const userId = auth.getUserOrFail().id
+    const channelId = params.channelId
+
+    // Check if user is member
+    const membership = await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userId)
+      .first()
+
+    if (!membership) {
+      return response.forbidden({ message: 'You are not a member of this channel' })
+    }
+
+    const members = await db
+      .from('channel_users')
+      .join('users', 'channel_users.user_id', 'users.id')
+      .where('channel_users.channel_id', channelId)
+      .select(
+        'users.id',
+        'users.username',
+        'users.first_name',
+        'users.last_name',
+        'channel_users.is_admin',
+        'channel_users.created_at as joined_at'
+      )
+      .orderBy('channel_users.created_at', 'asc')
+
+    return response.ok(members)
   }
 }
