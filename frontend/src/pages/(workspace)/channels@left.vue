@@ -356,11 +356,12 @@ async function deleteChannel() {
     } else {
       await router.push({ name: 'channels.index' })
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to delete channel:', error)
     Notify.create({
       type: 'negative',
-      message: error.response?.data?.message || 'Failed to delete channel'
+      // message: error.response?.data?.message || 'Failed to delete channel'
+      message: 'Failed to delete channel',
     })
   } finally {
     isDeleting.value = false

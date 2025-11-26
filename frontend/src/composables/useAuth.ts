@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs'
 import type { User } from 'src/models'
 import { UserStates } from 'src/models'
 import authService from 'src/services/auth'
-import type { TokenData } from 'src/models/auth'
+import type { NewUserData, TokenData } from 'src/models/auth'
 import { Notify } from 'quasar'
 import { AxiosError } from 'axios'
 
@@ -61,8 +61,40 @@ async function ensurePasswordHashExists(defaultPlain = 'test'){
   }
 }
 
+async function createNewUser(newUser: NewUserData) {
+  try {
+    const token: TokenData = await authService.getNewUserToken(newUser)
+    const user: User = {
+      id: crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
+      name: 'Test Name',
+      username: 'Test username',
+      email: 'test@example.com',
+      currentState: UserStates.online
+    }
+
+    state.currentUser = user
+    state.token = token.token
+    state.expiresAt = Date.parse(token.expiresAt)
+
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({
+      token: state.token,
+      expiresAt: state.expiresAt
+    } satisfies TokenBundle))
+  } catch (e: unknown) {
+    if (
+      e instanceof AxiosError
+      && e.code === 'ERR_BAD_REQUEST'
+    ) {
+      // TODO: add types
+      for (const error of e.response?.data?.errors || []) {
+        Notify.create({ message: error.message, type: 'negative' })
+      }
+    }
+  }
+}
+
 async function loginWithCredentials(email: string, password: string) {
-  // TODO: try catch notification
   try {
     const token: TokenData = await authService.getToken({ email, password });
     console.debug('got token', token);
@@ -143,6 +175,7 @@ export function useAuth() {
     isAuthenticated,
     secondsLeft,
     setPresence,
+    createNewUser,
     ensurePasswordHashExists,
     bootstrapFromStorage,
     loginWithCredentials,

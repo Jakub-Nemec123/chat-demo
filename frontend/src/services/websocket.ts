@@ -1,4 +1,4 @@
-import { io, Socket } from 'socket.io-client'
+import { io, type Socket } from 'socket.io-client'
 import { ref, type Ref } from 'vue'
 
 const TOKEN_KEY = 'auth.token'

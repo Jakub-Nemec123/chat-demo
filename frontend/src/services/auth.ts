@@ -1,5 +1,5 @@
 import api from './api'
-import type { AuthData, TokenData } from '../models/auth'
+import type { AuthData, NewUserData, TokenData } from 'src/models/auth'
 
 export default {
   // async invalidateToken(token: string) {}
@@ -7,5 +7,9 @@ export default {
     // TODO: validate the request data
     const response = await api.post('/sessions', authData)
     return response.data as TokenData
-  }
+  },
+  async getNewUserToken(userData: NewUserData): Promise<TokenData> {
+    const response = await api.post('/users', userData)
+    return response.data as TokenData
+  },
 }

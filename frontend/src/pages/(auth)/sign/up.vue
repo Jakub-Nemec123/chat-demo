@@ -109,18 +109,11 @@ import { ref } from 'vue';
 import { QForm } from 'quasar';
 import { useRouter } from 'vue-router';
 import type { Router } from 'vue-router';
+import type { NewUserData } from 'src/models/auth';
+import { useAuth } from 'src/composables/useAuth';
 
 const form = ref<QForm>();
-const formData = ref<{
-  email: string;
-  name: {
-    first: string;
-    last: string;
-  };
-  username: string;
-  password: string;
-  passwordRepeat: string;
-}>({
+const formData = ref<NewUserData>({
   email: '',
   name: {
     first: '',
@@ -131,8 +124,11 @@ const formData = ref<{
   passwordRepeat: '',
 });
 
+const auth = useAuth();
+const router: Router = useRouter();
+
 async function onSubmit() {
-  const router: Router = useRouter();
+  await auth.createNewUser(formData.value);
   await router.push({ name: 'channels.index' });
 }
 </script>
