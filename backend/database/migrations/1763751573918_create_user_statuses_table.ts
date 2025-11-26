@@ -26,6 +26,6 @@ export default class extends BaseSchema {
 
   async down() {
     this.schema.dropTable(this.tableName)
-    this.schema.raw('DROP TYPE user_status')
+    this.schema.raw('DROP TYPE status_indicator')
   }
 }
