@@ -10,21 +10,24 @@
     </div>
 
     <q-list v-else dense>
-      <!-- Admins -->
-      <template v-if="admins.length > 0">
-        <q-item-label class="q-px-none q-py-sm text-bold text-uppercase text-amber" header>
-          Admins ({{ admins.length }})
+      <!-- Online members -->
+      <template v-if="onlineMembers.length > 0">
+        <q-item-label class="q-px-none q-py-sm text-bold text-uppercase text-positive" header>
+          Online ({{ onlineMembers.length }})
         </q-item-label>
         <q-item
-          v-for="user in admins"
+          v-for="user in onlineMembers"
           :key="user.id"
           class="q-px-none"
         >
           <q-item-section side>
-            <q-icon name="star" color="amber" size="xs" />
+            <span class="presence-dot presence--online" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>@{{ user.username }}</q-item-label>
+            <q-item-label>
+              @{{ user.username }}
+              <q-icon v-if="user.is_admin" name="star" color="amber" size="xs" class="q-ml-xs" />
+            </q-item-label>
             <q-item-label caption v-if="user.first_name || user.last_name">
               {{ user.first_name }} {{ user.last_name }}
             </q-item-label>
@@ -32,21 +35,49 @@
         </q-item>
       </template>
 
-      <!-- Regular members -->
-      <template v-if="regularMembers.length > 0">
-        <q-item-label class="q-px-none q-py-sm text-bold text-uppercase" header>
-          Members ({{ regularMembers.length }})
+      <!-- DND members -->
+      <template v-if="dndMembers.length > 0">
+        <q-item-label class="q-px-none q-py-sm text-bold text-uppercase text-negative" header>
+          Do Not Disturb ({{ dndMembers.length }})
         </q-item-label>
         <q-item
-          v-for="user in regularMembers"
+          v-for="user in dndMembers"
           :key="user.id"
           class="q-px-none"
         >
           <q-item-section side>
-            <q-icon name="person" color="grey-6" size="xs" />
+            <span class="presence-dot presence--DND" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>@{{ user.username }}</q-item-label>
+            <q-item-label>
+              @{{ user.username }}
+              <q-icon v-if="user.is_admin" name="star" color="amber" size="xs" class="q-ml-xs" />
+            </q-item-label>
+            <q-item-label caption v-if="user.first_name || user.last_name">
+              {{ user.first_name }} {{ user.last_name }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </template>
+
+      <!-- Offline members -->
+      <template v-if="offlineMembers.length > 0">
+        <q-item-label class="q-px-none q-py-sm text-bold text-uppercase text-grey-6" header>
+          Offline ({{ offlineMembers.length }})
+        </q-item-label>
+        <q-item
+          v-for="user in offlineMembers"
+          :key="user.id"
+          class="q-px-none"
+        >
+          <q-item-section side>
+            <span class="presence-dot presence--offline" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label class="text-grey-6">
+              @{{ user.username }}
+              <q-icon v-if="user.is_admin" name="star" color="amber" size="xs" class="q-ml-xs" />
+            </q-item-label>
             <q-item-label caption v-if="user.first_name || user.last_name">
               {{ user.first_name }} {{ user.last_name }}
             </q-item-label>
@@ -64,19 +95,24 @@
 
 <script setup lang="ts">
 import { computed, watch, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { useChannelsStore, type ChannelMember } from 'src/stores/channels'
+import { useChannelsStore } from 'src/stores/channels'
 
-const route = useRoute()
 const channelsStore = useChannelsStore()
 const isLoading = ref(false)
 
 // Get members from store
 const members = computed(() => channelsStore.members)
 
-// Split into admins and regular members
-const admins = computed(() => members.value.filter(m => m.is_admin))
-const regularMembers = computed(() => members.value.filter(m => !m.is_admin))
+// Split by status
+const onlineMembers = computed(() =>
+  members.value.filter(m => m.status === 'ONLINE')
+)
+const dndMembers = computed(() =>
+  members.value.filter(m => m.status === 'DO_NOT_DISTURB')
+)
+const offlineMembers = computed(() =>
+  members.value.filter(m => m.status === 'OFFLINE')
+)
 
 // Load members when channel changes
 watch(
@@ -96,3 +132,22 @@ watch(
   { immediate: true }
 )
 </script>
+
+<style scoped>
+.presence-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.presence--online {
+  background: #43a047;
+}
+.presence--DND {
+  background: #e53935;
+}
+.presence--offline {
+  background: #757575;
+}
+</style>

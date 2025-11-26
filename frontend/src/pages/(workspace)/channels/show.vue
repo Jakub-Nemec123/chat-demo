@@ -36,9 +36,9 @@
 
     <!-- Command result notification -->
     <div v-if="commandResult" class="q-px-md q-py-sm bg-dark">
-      <q-banner
-        :class="commandResult.success ? 'bg-positive' : 'bg-negative'"
-        dense
+      <q-banner 
+        :class="commandResult.success ? 'bg-positive' : 'bg-negative'" 
+        dense 
         rounded
       >
         <template v-slot:avatar>
@@ -128,7 +128,7 @@ function isMention(msg: Message): boolean {
 // Load messages when channel changes
 async function loadMessages() {
   if (!channelId.value) return
-
+  
   try {
     await messagesStore.fetchMessages(channelId.value, 1)
   } catch (error) {
@@ -152,7 +152,7 @@ async function onLoadMore(index: number, done: () => void) {
   } catch (error) {
     console.error('Failed to load more messages:', error)
   }
-
+  
   done()
 }
 
@@ -163,7 +163,7 @@ async function onSubmit(input: string) {
   // Check if it's a command
   if (commandsStore.isCommand(input)) {
     commandResult.value = null
-
+    
     try {
       const result = await commandsStore.executeCommand(input, channelId.value)
       commandResult.value = result

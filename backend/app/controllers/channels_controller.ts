@@ -516,6 +516,7 @@ export default class ChannelsController {
     const members = await db
       .from('channel_users')
       .join('users', 'channel_users.user_id', 'users.id')
+      .leftJoin('user_statuses', 'users.id', 'user_statuses.user_id')
       .where('channel_users.channel_id', channelId)
       .select(
         'users.id',
@@ -523,10 +524,19 @@ export default class ChannelsController {
         'users.first_name',
         'users.last_name',
         'channel_users.is_admin',
-        'channel_users.created_at as joined_at'
+        'channel_users.created_at as joined_at',
+        'user_statuses.state as status',
+        'user_statuses.message as status_message'
       )
       .orderBy('channel_users.created_at', 'asc')
 
-    return response.ok(members)
+    // Default status to ONLINE if not set
+    const membersWithStatus = members.map((m) => ({
+      ...m,
+      status: m.status || 'ONLINE',
+      status_message: m.status_message || '',
+    }))
+
+    return response.ok(membersWithStatus)
   }
 }

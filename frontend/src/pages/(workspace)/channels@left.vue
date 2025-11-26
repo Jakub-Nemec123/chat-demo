@@ -87,14 +87,57 @@
           <div class="name">{{ auth.state.currentUser.username }}</div>
           <div class="tag">{{ auth.state.currentUser.name }}</div>
         </div>
-        <span
-          class="presence-dot q-mr-sm"
-          :class="{
-            'presence--online': auth.state.currentUser?.currentState === UserStates.online,
-            'presence--DND': auth.state.currentUser?.currentState === UserStates.DND,
-            'presence--offline': auth.state.currentUser?.currentState === UserStates.offline
-          }"
-        />
+
+        <!-- Status indicator with menu -->
+        <q-btn flat dense round size="sm" class="q-ml-sm">
+          <span
+            class="presence-dot"
+            :class="{
+              'presence--online': userStore.isOnline,
+              'presence--DND': userStore.isDND,
+              'presence--offline': userStore.isOffline
+            }"
+          />
+          <q-menu>
+            <q-list dense style="min-width: 150px">
+              <q-item-label header>Set Status</q-item-label>
+              <q-item
+                clickable
+                v-close-popup
+                @click="setStatus('ONLINE')"
+                :active="userStore.isOnline"
+              >
+                <q-item-section side>
+                  <span class="presence-dot presence--online" />
+                </q-item-section>
+                <q-item-section>Online</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-close-popup
+                @click="setStatus('DO_NOT_DISTURB')"
+                :active="userStore.isDND"
+              >
+                <q-item-section side>
+                  <span class="presence-dot presence--DND" />
+                </q-item-section>
+                <q-item-section>Do Not Disturb</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-close-popup
+                @click="setStatus('OFFLINE')"
+                :active="userStore.isOffline"
+              >
+                <q-item-section side>
+                  <span class="presence-dot presence--offline" />
+                </q-item-section>
+                <q-item-section>Offline</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+          <q-tooltip>{{ userStore.statusLabel }}</q-tooltip>
+        </q-btn>
       </div>
       <div class="q-gutter-x-sm">
         <q-btn dense flat icon="settings" @click="handleSettings" aria-label="Nastavenia" />
@@ -176,22 +219,26 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from 'src/composables/useAuth'
-import { UserStates } from 'src/models'
 import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { useChannelsStore } from 'src/stores/channels'
+import { useUserStore, type UserStatus } from 'src/stores/user'
 import { Notify } from 'quasar'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuth()
 const channelsStore = useChannelsStore()
+const userStore = useUserStore()
 
-// Load channels on mount
+// Load channels and status on mount
 onMounted(async () => {
   try {
-    await channelsStore.fetchChannels()
+    await Promise.all([
+      channelsStore.fetchChannels(),
+      userStore.fetchStatus()
+    ])
   } catch (error) {
-    console.error('Failed to load channels:', error)
+    console.error('Failed to load data:', error)
   }
 })
 
@@ -219,6 +266,22 @@ async function handleSettings() {
 async function handleLogout() {
   auth.logout()
   await router.replace({ name: 'sign.in' })
+}
+
+// ============ USER STATUS ============
+async function setStatus(status: UserStatus) {
+  try {
+    await userStore.updateStatus(status)
+    Notify.create({
+      type: 'positive',
+      message: `Status changed to ${userStore.statusLabel}`
+    })
+  } catch (error) {
+    Notify.create({
+      type: 'negative',
+      message: 'Failed to update status'
+    })
+  }
 }
 
 // ============ CREATE CHANNEL ============

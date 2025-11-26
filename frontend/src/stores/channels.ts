@@ -22,6 +22,8 @@ export interface ChannelMember {
   last_name: string | null
   is_admin: boolean
   joined_at: string
+  status: 'ONLINE' | 'DO_NOT_DISTURB' | 'OFFLINE'
+  status_message: string
 }
 
 export const useChannelsStore = defineStore('channels', () => {

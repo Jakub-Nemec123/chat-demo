@@ -5,6 +5,7 @@ const SessionsController = () => import('#controllers/sessions_controller')
 const UsersController = () => import('#controllers/users_controller')
 const ChannelsController = () => import('#controllers/channels_controller')
 const MessagesController = () => import('#controllers/messages_controller')
+const StatusController = () => import('#controllers/status_controller')
 
 // Public routes (no auth)
 router.group(() => {
@@ -15,6 +16,11 @@ router.group(() => {
 // Protected routes (auth required)
 router
   .group(() => {
+    // User status
+    router.get('status', [StatusController, 'show'])
+    router.put('status', [StatusController, 'update'])
+    router.get('users/:userId/status', [StatusController, 'showUser'])
+
     // Channels CRUD
     router.get('channels', [ChannelsController, 'index'])
     router.post('channels', [ChannelsController, 'store'])
