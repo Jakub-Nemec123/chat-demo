@@ -15,8 +15,15 @@ router.group(() => {
 // routes for active login
 router
   .group(() => {
+    // Channels
     router.get('channels', [ChannelsController, 'index'])
+    router.post('channels', [ChannelsController, 'store'])
     router.get('channels/:channelId', [ChannelsController, 'show'])
+    router.delete('channels/:channelId', [ChannelsController, 'destroy'])
+    router.post('channels/:channelId/join', [ChannelsController, 'join'])
+    router.post('channels/:channelId/leave', [ChannelsController, 'leave'])
+
+    // Messages
     router.get('channels/:channelId/messages', [MessagesController, 'index'])
     router.post('channels/:channelId/messages', [MessagesController, 'store'])
   })
