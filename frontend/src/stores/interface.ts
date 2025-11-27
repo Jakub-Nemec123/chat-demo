@@ -7,6 +7,18 @@ export const useInterface = defineStore('interface', {
     },
     toggleSidebar(side: 'left' | 'right'): void {
       this.sidebar[side] = !this.sidebar[side];
+    },
+    openRightSidebar(): void {
+      this.sidebar.right = true;
+    },
+    closeRightSidebar(): void {
+      this.sidebar.right = false;
+    },
+    openLeftSidebar(): void {
+      this.sidebar.left = true;
+    },
+    closeLeftSidebar(): void {
+      this.sidebar.left = false;
     }
   },
   state: () => ({

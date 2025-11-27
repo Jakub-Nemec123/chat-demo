@@ -29,7 +29,7 @@
         autogrow
         standout
         type="textarea"
-        placeholder="Type a message or /command..."
+        :placeholder="props.placeholder"
         @keydown.enter.exact.prevent="onSubmit"
         @keydown.tab.prevent="onTab"
         @keydown.up.prevent="onArrowUp"
@@ -55,6 +55,12 @@
 import { ref, computed, watch } from 'vue'
 import { QInput } from 'quasar'
 import { useCommandsStore } from 'src/stores/commands'
+
+const props = withDefaults(defineProps<{
+  placeholder?: string
+}>(), {
+  placeholder: 'Type a message or /command...'
+})
 
 const emit = defineEmits<{
   (e: 'submit', message: string): void
