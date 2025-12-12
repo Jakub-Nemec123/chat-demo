@@ -71,7 +71,7 @@ export const useCommandsStore = defineStore('commands', () => {
           return await handleRevoke(parsed.args, currentChannelId)
 
         case 'list':
-          return await handleList(currentChannelId)
+          return handleList(currentChannelId)
 
         default:
           return { success: false, message: `Unknown command: /${parsed.command}` }
@@ -212,23 +212,21 @@ export const useCommandsStore = defineStore('commands', () => {
   /**
    * /list - show channel members
    */
-  async function handleList(channelId: number | null): Promise<CommandResult> {
+  function handleList(channelId: number | null): CommandResult {
     if (!channelId) {
-      return { success: false, message: 'No active channel' }
+      return {
+        success: false,
+        message: 'No active channel'
+      }
     }
-
-    const members = await channelsStore.fetchMembers(channelId)
-
-    const memberList = members.map((m: any) => {
-      const name = `${m.first_name || ''} ${m.last_name || ''}`.trim()
-      const admin = m.is_admin ? ' (admin)' : ''
-      return `@${m.username}${name ? ` - ${name}` : ''}${admin}`
-    }).join('\n')
 
     return {
       success: true,
-      message: `Channel members:\n${memberList}`,
-      data: { members, showInSidebar: true }
+      message: '',
+      data: {
+        showInSidebar: true,
+        showMessage: false,
+      }
     }
   }
 
