@@ -82,22 +82,27 @@ export const useMessagesStore = defineStore('messages', () => {
 
       const currentMessages = messagesByChannel.value.get(channelId) || []
 
+      // Create new Map to trigger Vue reactivity
+      const newMessagesMap = new Map(messagesByChannel.value)
       if (page === 1) {
         // First page - replace messages
-        messagesByChannel.value.set(channelId, messages)
+        newMessagesMap.set(channelId, messages)
       } else {
         // Subsequent pages - prepend older messages
-        messagesByChannel.value.set(channelId, [...messages, ...currentMessages])
+        newMessagesMap.set(channelId, [...messages, ...currentMessages])
       }
+      messagesByChannel.value = newMessagesMap
 
-      // Update pagination
-      paginationByChannel.value.set(channelId, {
+      // Update pagination - create new Map to trigger reactivity
+      const newPaginationMap = new Map(paginationByChannel.value)
+      newPaginationMap.set(channelId, {
         total: meta.total,
         perPage: meta.per_page,
         currentPage: meta.current_page,
         lastPage: meta.last_page,
         firstPage: meta.first_page,
       })
+      paginationByChannel.value = newPaginationMap
 
       return messages
     } catch (e: any) {
@@ -153,19 +158,26 @@ export const useMessagesStore = defineStore('messages', () => {
     // Check if message already exists
     const exists = channelMessages.find(m => m.id === message.id)
     if (!exists) {
-      channelMessages.push(message)
-      messagesByChannel.value.set(message.channelId, channelMessages)
+      // Create new Map to trigger Vue reactivity
+      const newMap = new Map(messagesByChannel.value)
+      newMap.set(message.channelId, [...channelMessages, message])
+      messagesByChannel.value = newMap
     }
   }
 
   function clearChannelMessages(channelId: number) {
-    messagesByChannel.value.delete(channelId)
-    paginationByChannel.value.delete(channelId)
+    const newMessagesMap = new Map(messagesByChannel.value)
+    newMessagesMap.delete(channelId)
+    messagesByChannel.value = newMessagesMap
+
+    const newPaginationMap = new Map(paginationByChannel.value)
+    newPaginationMap.delete(channelId)
+    paginationByChannel.value = newPaginationMap
   }
 
   function clearAllMessages() {
-    messagesByChannel.value.clear()
-    paginationByChannel.value.clear()
+    messagesByChannel.value = new Map()
+    paginationByChannel.value = new Map()
   }
 
   return {

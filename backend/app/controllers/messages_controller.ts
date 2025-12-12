@@ -3,6 +3,7 @@ import Message from '#models/message'
 import Channel from '#models/channel'
 import { createMessageValidator } from '#validators/message'
 import db from '@adonisjs/lucid/services/db'
+import Ws from '#services/ws'
 
 export default class MessagesController {
   /**
@@ -68,7 +69,21 @@ export default class MessagesController {
     // Update channel's updatedAt for activity tracking
     await Channel.query().where('id', channelId).update({ updated_at: new Date() })
 
-    // TODO: WebSocket broadcast here
+    // Broadcast message via WebSocket
+    Ws.broadcastMessage(channelId, {
+      id: message.id,
+      userId: message.userId,
+      channelId: message.channelId,
+      content: message.content,
+      createdAt: message.createdAt.toISO(),
+      updatedAt: message.updatedAt.toISO(),
+      user: {
+        id: message.user.id,
+        username: message.user.username,
+        first_name: message.user.first_name,
+        last_name: message.user.last_name,
+      },
+    })
 
     return response.created({
       id: message.id,

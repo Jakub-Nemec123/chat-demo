@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useChannelsStore } from 'src/stores/channels'
 import { useMessagesStore, type Message } from 'src/stores/messages'
@@ -70,6 +70,7 @@ import ChannelMessage from 'components/ChannelMessage.vue'
 import MessageInput from 'components/MessageInput.vue'
 import { UserStates } from 'src/models'
 import { Notify } from 'quasar'
+import { wsService, type WsMessage } from 'src/services/websocket'
 
 definePage({
   path: ':channel',
@@ -211,18 +212,72 @@ async function onSubmit(input: string) {
   }
 }
 
+// Handle incoming WebSocket messages
+function handleWebSocketMessage(wsMessage: WsMessage) {
+  console.log('[Channel] Received WebSocket message:', wsMessage)
+
+  // Transform WebSocket message to store format
+  const message: Message = {
+    id: wsMessage.id,
+    userId: wsMessage.userId,
+    channelId: wsMessage.channelId,
+    content: wsMessage.content,
+    createdAt: wsMessage.createdAt,
+    updatedAt: wsMessage.updatedAt,
+    user: {
+      id: wsMessage.user.id,
+      username: wsMessage.user.username,
+      firstName: wsMessage.user.first_name,
+      lastName: wsMessage.user.last_name,
+    }
+  }
+
+  // Add to messages store
+  messagesStore.addMessage(message)
+}
+
 // Watch for channel changes
 watch(channelId, (newId, oldId) => {
   if (newId && newId !== oldId) {
+    // Leave old channel
+    if (oldId) {
+      console.log('[Channel] Leaving WebSocket channel:', oldId)
+      wsService.leaveChannel(oldId)
+    }
+
+    // Load messages for new channel
     loadMessages()
     channelsStore.setActiveChannel(newId)
+
+    // Join new channel via WebSocket
+    if (newId) {
+      console.log('[Channel] Joining WebSocket channel:', newId)
+      wsService.joinChannel(newId)
+    }
   }
 }, { immediate: true })
 
-// Initial load
+// Initial load and WebSocket setup
 onMounted(() => {
+  console.log('[Channel] Component mounted, initializing WebSocket')
+
+  // Connect to WebSocket
+  wsService.connect()
+
+  // Register message handler
+  wsService.onMessage(handleWebSocketMessage)
+
+  // Load initial messages
   if (channelId.value) {
     loadMessages()
+  }
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  console.log('[Channel] Component unmounting, leaving channel')
+  if (channelId.value) {
+    wsService.leaveChannel(channelId.value)
   }
 })
 </script>
