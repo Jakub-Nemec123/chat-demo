@@ -560,4 +560,39 @@ export default class ChannelsController {
 
     return response.ok(membersWithStatus)
   }
+
+  /**
+   * PUT /channels/:channelId/alerts
+   * Update notification settings for a channel
+   */
+  async updateAlerts({ auth, params, request, response }: HttpContext) {
+    const userId = auth.getUserOrFail().id
+    const channelId = params.channelId
+    const { alerts } = request.only(['alerts'])
+
+    // Validate alerts value
+    if (!['ALL', 'MENTIONS', 'NONE'].includes(alerts)) {
+      return response.badRequest({ message: 'Invalid alerts value. Must be ALL, MENTIONS, or NONE' })
+    }
+
+    // Check if user is member
+    const membership = await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userId)
+      .first()
+
+    if (!membership) {
+      return response.forbidden({ message: 'You are not a member of this channel' })
+    }
+
+    // Update alerts setting
+    await db
+      .from('channel_users')
+      .where('channel_id', channelId)
+      .where('user_id', userId)
+      .update({ alerts, updated_at: new Date() })
+
+    return response.ok({ message: 'Notification settings updated', alerts })
+  }
 }

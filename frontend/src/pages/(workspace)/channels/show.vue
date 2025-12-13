@@ -123,7 +123,10 @@ function transformMessage(msg: Message) {
 function isMention(msg: Message): boolean {
   const currentUsername = auth.state.currentUser?.username
   if (!currentUsername) return false
-  return msg.content.includes(`@${currentUsername}`)
+
+  // Match @username with word boundaries (case insensitive)
+  const mentionRegex = new RegExp(`@${currentUsername}\\b`, 'i')
+  return mentionRegex.test(msg.content)
 }
 
 // Load messages when channel changes
@@ -143,13 +146,23 @@ async function loadMessages() {
 
 // Load more messages (infinite scroll)
 async function onLoadMore(index: number, done: () => void) {
+  console.log('[InfiniteScroll] onLoadMore triggered', {
+    index,
+    channelId: channelId.value,
+    hasMore: hasMore.value,
+    pagination: messagesStore.getPagination(channelId.value || 0)
+  })
+
   if (!channelId.value || !hasMore.value) {
+    console.log('[InfiniteScroll] Skipping - no channel or no more messages')
     done()
     return
   }
 
   try {
+    console.log('[InfiniteScroll] Loading more messages...')
     await messagesStore.loadMoreMessages(channelId.value)
+    console.log('[InfiniteScroll] Loaded successfully')
   } catch (error) {
     console.error('Failed to load more messages:', error)
   }
@@ -280,6 +293,8 @@ onUnmounted(() => {
   if (channelId.value) {
     wsService.leaveChannel(channelId.value)
   }
+  // Remove message handler
+  wsService.offMessage(handleWebSocketMessage)
 })
 </script>
 

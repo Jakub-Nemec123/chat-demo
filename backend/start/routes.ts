@@ -33,6 +33,7 @@ router
     router.post('channels/:channelId/kick', [ChannelsController, 'kick'])
     router.post('channels/:channelId/revoke', [ChannelsController, 'revoke'])
     router.get('channels/:channelId/members', [ChannelsController, 'members'])
+    router.put('channels/:channelId/alerts', [ChannelsController, 'updateAlerts'])
 
     // Messages
     router.get('channels/:channelId/messages', [MessagesController, 'index'])

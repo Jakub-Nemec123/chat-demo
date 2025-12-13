@@ -32,8 +32,8 @@ class WebSocketService {
   public isAuthenticated: Ref<boolean> = ref(false)
   public typingUsers: Ref<TypingUser[]> = ref([])
 
-  // Event callbacks
-  private onMessageCallback: ((message: WsMessage) => void) | null = null
+  // Event callbacks - arrays to support multiple listeners
+  private onMessageCallbacks: ((message: WsMessage) => void)[] = []
   private onUserJoinedCallback: ((data: { channelId: number; user: { id: number; username: string } }) => void) | null = null
   private onUserLeftCallback: ((data: { channelId: number; userId: number }) => void) | null = null
   private onChannelDeletedCallback: ((data: { channelId: number }) => void) | null = null
@@ -44,8 +44,15 @@ class WebSocketService {
    * Connect to WebSocket server
    */
   connect() {
+    // Already connected or connecting
     if (this.socket?.connected) {
       console.log('[WS Client] Already connected')
+      return
+    }
+
+    // Socket exists but not connected - don't create new one, let it reconnect
+    if (this.socket) {
+      console.log('[WS Client] Socket exists, waiting for reconnect...')
       return
     }
 
@@ -54,6 +61,9 @@ class WebSocketService {
     this.socket = io('http://127.0.0.1:3333', {
       transports: ['websocket', 'polling'],
       autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     })
 
     this.socket.on('connect', () => {
@@ -70,14 +80,14 @@ class WebSocketService {
       }
     })
 
-    this.socket.on('disconnect', () => {
-      console.log('[WS Client] Disconnected')
+    this.socket.on('disconnect', (reason) => {
+      console.log('[WS Client] Disconnected, reason:', reason)
       this.isConnected.value = false
       this.isAuthenticated.value = false
     })
 
     this.socket.on('connect_error', (error) => {
-      console.error('[WS Client] Connection error:', error)
+      console.error('[WS Client] Connection error:', error.message)
       this.isConnected.value = false
     })
 
@@ -95,9 +105,14 @@ class WebSocketService {
     // Message events
     this.socket.on('message:new', (message: WsMessage) => {
       console.log('[WS Client] Received new message:', message)
-      if (this.onMessageCallback) {
-        this.onMessageCallback(message)
-      }
+      // Call all registered callbacks
+      this.onMessageCallbacks.forEach(callback => {
+        try {
+          callback(message)
+        } catch (e) {
+          console.error('[WS Client] Error in message callback:', e)
+        }
+      })
     })
 
     // Typing events
@@ -270,9 +285,20 @@ class WebSocketService {
 
   /**
    * Register callback for new messages
+   * Supports multiple listeners
    */
   onMessage(callback: (message: WsMessage) => void) {
-    this.onMessageCallback = callback
+    // Prevent duplicate registration
+    if (!this.onMessageCallbacks.includes(callback)) {
+      this.onMessageCallbacks.push(callback)
+    }
+  }
+
+  /**
+   * Remove a message callback
+   */
+  offMessage(callback: (message: WsMessage) => void) {
+    this.onMessageCallbacks = this.onMessageCallbacks.filter(cb => cb !== callback)
   }
 
   /**

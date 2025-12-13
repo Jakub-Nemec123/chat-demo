@@ -290,6 +290,24 @@ export const useChannelsStore = defineStore('channels', () => {
     return highlightedChannelIds.value.has(channelId)
   }
 
+  // Update channel notification settings
+  async function updateChannelAlerts(channelId: number, alerts: 'ALL' | 'MENTIONS' | 'NONE') {
+    try {
+      await api.put(`/channels/${channelId}/alerts`, { alerts })
+
+      // Update local state
+      const channel = channels.value.find(c => c.id === channelId)
+      if (channel) {
+        channel.alerts = alerts
+      }
+
+      return { success: true }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Failed to update notification settings'
+      throw e
+    }
+  }
+
   return {
     // State
     channels,
@@ -321,6 +339,7 @@ export const useChannelsStore = defineStore('channels', () => {
     handleChannelKicked,
     clearHighlight,
     isChannelHighlighted,
+    updateChannelAlerts,
   }
 })
 
