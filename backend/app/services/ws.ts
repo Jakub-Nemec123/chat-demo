@@ -74,12 +74,13 @@ class Ws {
         console.log(`[WS] Socket ${socket.id} left ${roomName}`)
       })
 
-      // Handle typing indicators
-      socket.on('typing:start', (data: { channelId: number }) => {
+      // Handle typing indicators with content preview
+      socket.on('typing:update', (data: { channelId: number; content: string }) => {
         const roomName = `channel:${data.channelId}`
         socket.to(roomName).emit('user:typing', {
           userId: socket.data.userId,
           channelId: data.channelId,
+          content: data.content,
         })
       })
 

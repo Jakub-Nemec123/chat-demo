@@ -21,6 +21,8 @@ export interface WsMessage {
 export interface TypingUser {
   userId: number
   channelId: number
+  content?: string
+  username?: string
 }
 
 class WebSocketService {
@@ -118,10 +120,13 @@ class WebSocketService {
     // Typing events
     this.socket.on('user:typing', (data: TypingUser) => {
       console.log('[WS Client] User typing:', data)
-      const exists = this.typingUsers.value.find(
+      const existingIndex = this.typingUsers.value.findIndex(
         (u) => u.userId === data.userId && u.channelId === data.channelId
       )
-      if (!exists) {
+      if (existingIndex >= 0) {
+        // Update existing entry with new content
+        this.typingUsers.value[existingIndex] = { ...this.typingUsers.value[existingIndex], ...data }
+      } else {
         this.typingUsers.value.push(data)
       }
     })
@@ -268,11 +273,11 @@ class WebSocketService {
   }
 
   /**
-   * Send typing indicator
+   * Send typing indicator with content
    */
-  startTyping(channelId: number) {
+  updateTyping(channelId: number, content: string) {
     if (!this.socket) return
-    this.socket.emit('typing:start', { channelId })
+    this.socket.emit('typing:update', { channelId, content })
   }
 
   /**

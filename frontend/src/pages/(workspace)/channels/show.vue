@@ -51,9 +51,44 @@
       </q-banner>
     </div>
 
+    <!-- Typing indicator -->
+    <div v-if="typingUsers.length > 0" class="q-px-md q-py-xs">
+      <q-expansion-item
+        dense
+        dense-toggle
+        switch-toggle-side
+        :label="typingHeaderText"
+        header-class="text-grey-6 text-caption"
+      >
+        <template v-slot:header>
+          <q-item-section avatar>
+            <q-spinner-dots size="1em" />
+          </q-item-section>
+          <q-item-section class="text-grey-6 text-caption">
+            {{ typingHeaderText }}
+          </q-item-section>
+        </template>
+
+        <q-card class="bg-dark">
+          <q-card-section class="q-py-sm">
+            <div
+              v-for="user in typingUsers"
+              :key="user.userId"
+              class="q-mb-xs"
+            >
+              <span class="text-bold text-primary">@{{ getUserName(user.userId) }}:</span>
+              <span class="text-grey-4 q-ml-sm" style="font-style: italic;">
+                {{ user.content || '...' }}
+              </span>
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-expansion-item>
+    </div>
+
     <!-- Message input -->
     <div class="col-shrink q-pa-md">
-      <message-input @submit="onSubmit" />
+      <message-input :channel-id="channelId" @submit="onSubmit" />
     </div>
   </q-page>
 </template>
@@ -103,6 +138,37 @@ const hasMore = computed(() => {
   if (!channelId.value) return false
   return messagesStore.hasMoreMessages(channelId.value)
 })
+
+// Get typing users for current channel
+const typingUsers = computed(() => {
+  if (!channelId.value) return []
+
+  const allTyping = wsService.getTypingUsers(channelId.value)
+  // Filter out current user
+  return allTyping.filter(u => u.userId !== auth.state.currentUser?.id)
+})
+
+// Get typing header text
+const typingHeaderText = computed(() => {
+  const count = typingUsers.value.length
+  if (count === 0) return ''
+
+  const names = typingUsers.value.map(u => getUserName(u.userId))
+
+  if (count === 1) {
+    return `${names[0]} is typing...`
+  } else if (count === 2) {
+    return `${names[0]} and ${names[1]} are typing...`
+  } else {
+    return `${count} people are typing...`
+  }
+})
+
+// Get username by userId
+function getUserName(userId: number): string {
+  const member = channelsStore.members.find(m => m.id === userId)
+  return member?.username || `User ${userId}`
+}
 
 // Transform store message to component format
 function transformMessage(msg: Message) {

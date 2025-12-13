@@ -52,14 +52,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { QInput } from 'quasar'
 import { useCommandsStore } from 'src/stores/commands'
+import { wsService } from 'src/services/websocket'
 
 const props = withDefaults(defineProps<{
   placeholder?: string
+  channelId?: number | null
 }>(), {
-  placeholder: 'Type a message or /command...'
+  placeholder: 'Type a message or /command...',
+  channelId: null
 })
 
 const emit = defineEmits<{
@@ -71,6 +74,8 @@ const commandsStore = useCommandsStore()
 const message = ref('')
 const inputField = ref<QInput>()
 const selectedIndex = ref(0)
+let typingTimeout: ReturnType<typeof setTimeout> | null = null
+let isTyping = false
 
 // Get filtered commands based on input
 const filteredCommands = computed(() => {
@@ -80,6 +85,55 @@ const filteredCommands = computed(() => {
 // Reset selection when commands change
 watch(filteredCommands, () => {
   selectedIndex.value = 0
+})
+
+// Watch for message changes to send typing indicator with content
+watch(message, (newValue) => {
+  if (!props.channelId) return
+
+  // Don't send typing for commands
+  if (newValue.startsWith('/')) {
+    if (isTyping) {
+      wsService.stopTyping(props.channelId)
+      isTyping = false
+    }
+    return
+  }
+
+  // Clear existing timeout
+  if (typingTimeout) {
+    clearTimeout(typingTimeout)
+  }
+
+  if (newValue.length > 0) {
+    // Send typing update with content
+    wsService.updateTyping(props.channelId, newValue)
+    isTyping = true
+
+    // Stop typing after 3 seconds of inactivity
+    typingTimeout = setTimeout(() => {
+      if (props.channelId && isTyping) {
+        wsService.stopTyping(props.channelId)
+        isTyping = false
+      }
+    }, 3000)
+  } else {
+    // Message cleared
+    if (isTyping && props.channelId) {
+      wsService.stopTyping(props.channelId)
+      isTyping = false
+    }
+  }
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (typingTimeout) {
+    clearTimeout(typingTimeout)
+  }
+  if (isTyping && props.channelId) {
+    wsService.stopTyping(props.channelId)
+  }
 })
 
 // Select command from suggestions
@@ -123,6 +177,12 @@ function onSubmit() {
   if (filteredCommands.value.length > 0 && !trimmed.includes(' ')) {
     selectCommand(filteredCommands.value[selectedIndex.value])
     return
+  }
+
+  // Stop typing indicator
+  if (isTyping && props.channelId) {
+    wsService.stopTyping(props.channelId)
+    isTyping = false
   }
 
   emit('submit', trimmed)

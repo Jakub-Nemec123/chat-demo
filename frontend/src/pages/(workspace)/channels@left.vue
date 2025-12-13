@@ -36,11 +36,72 @@
             class="q-mr-sm"
           />
           {{ channel.name }}
+          <q-icon
+            v-if="channel.alerts === 'MENTIONS'"
+            name="alternate_email"
+            size="xs"
+            class="q-ml-sm text-grey-5"
+          />
+          <q-icon
+            v-else-if="channel.alerts === 'NONE'"
+            name="notifications_off"
+            size="xs"
+            class="q-ml-sm text-grey-5"
+          />
           <q-badge v-if="channel.isAdmin" color="amber" label="admin" class="q-ml-sm" />
           <q-badge v-if="channelsStore.isChannelHighlighted(channel.id)" color="info" label="NEW" class="q-ml-sm" />
           <q-tooltip v-if="channel.invitedBy">
             Invited by @{{ channel.invitedBy }}
           </q-tooltip>
+
+          <!-- Context menu -->
+          <q-menu context-menu>
+            <q-list dense style="min-width: 180px">
+              <q-item-label header>Notifications</q-item-label>
+              <q-item
+                clickable
+                v-close-popup
+                @click="setChannelAlerts(channel.id, 'ALL')"
+                :active="channel.alerts === 'ALL'"
+              >
+                <q-item-section side>
+                  <q-icon name="notifications_active" size="xs" />
+                </q-item-section>
+                <q-item-section>All messages</q-item-section>
+                <q-item-section side v-if="channel.alerts === 'ALL'">
+                  <q-icon name="check" color="positive" size="xs" />
+                </q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-close-popup
+                @click="setChannelAlerts(channel.id, 'MENTIONS')"
+                :active="channel.alerts === 'MENTIONS'"
+              >
+                <q-item-section side>
+                  <q-icon name="alternate_email" size="xs" />
+                </q-item-section>
+                <q-item-section>Only @mentions</q-item-section>
+                <q-item-section side v-if="channel.alerts === 'MENTIONS'">
+                  <q-icon name="check" color="positive" size="xs" />
+                </q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-close-popup
+                @click="setChannelAlerts(channel.id, 'NONE')"
+                :active="channel.alerts === 'NONE'"
+              >
+                <q-item-section side>
+                  <q-icon name="notifications_off" size="xs" />
+                </q-item-section>
+                <q-item-section>Muted</q-item-section>
+                <q-item-section side v-if="channel.alerts === 'NONE'">
+                  <q-icon name="check" color="positive" size="xs" />
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
         </q-btn>
       </router-link>
 
@@ -269,6 +330,27 @@ watch(
 // Clear highlight when clicking on channel
 function onChannelClick(channelId: number) {
   channelsStore.clearHighlight(channelId)
+}
+
+// ============ CHANNEL ALERTS ============
+async function setChannelAlerts(channelId: number, alerts: 'ALL' | 'MENTIONS' | 'NONE') {
+  try {
+    await channelsStore.updateChannelAlerts(channelId, alerts)
+    const alertLabels = {
+      'ALL': 'All messages',
+      'MENTIONS': 'Only @mentions',
+      'NONE': 'Muted'
+    }
+    Notify.create({
+      type: 'positive',
+      message: `Notifications: ${alertLabels[alerts]}`
+    })
+  } catch (error) {
+    Notify.create({
+      type: 'negative',
+      message: 'Failed to update notification settings'
+    })
+  }
 }
 
 // Navigation
