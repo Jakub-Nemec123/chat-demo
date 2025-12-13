@@ -19,14 +19,16 @@
       >
         <q-btn
           align="left"
-          :color="isActive ? 'primary' : 'none'"
+          :color="isActive ? 'primary' : channelsStore.isChannelHighlighted(channel.id) ? 'amber' : 'none'"
           :class="{
             'is-private': channel.privacy === 'PRIVATE',
-            'is-admin': channel.isAdmin
+            'is-admin': channel.isAdmin,
+            'is-highlighted': channelsStore.isChannelHighlighted(channel.id)
           }"
           no-caps
           :to="href"
           unelevated
+          @click="onChannelClick(channel.id)"
         >
           <q-icon
             :name="channel.privacy === 'PRIVATE' ? 'lock' : 'tag'"
@@ -35,6 +37,10 @@
           />
           {{ channel.name }}
           <q-badge v-if="channel.isAdmin" color="amber" label="admin" class="q-ml-sm" />
+          <q-badge v-if="channelsStore.isChannelHighlighted(channel.id)" color="info" label="NEW" class="q-ml-sm" />
+          <q-tooltip v-if="channel.invitedBy">
+            Invited by @{{ channel.invitedBy }}
+          </q-tooltip>
         </q-btn>
       </router-link>
 
@@ -250,6 +256,8 @@ watch(
       const channel = channelsStore.findChannelByName(channelName)
       if (channel) {
         channelsStore.setActiveChannel(channel.id)
+        // Clear highlight when channel is opened
+        channelsStore.clearHighlight(channel.id)
       }
     } else {
       channelsStore.setActiveChannel(null)
@@ -257,6 +265,11 @@ watch(
   },
   { immediate: true }
 )
+
+// Clear highlight when clicking on channel
+function onChannelClick(channelId: number) {
+  channelsStore.clearHighlight(channelId)
+}
 
 // Navigation
 async function handleSettings() {
@@ -420,6 +433,19 @@ async function leaveChannel() {
 <style>
 .is-private {
   opacity: 0.9;
+}
+
+.is-highlighted {
+  animation: pulse-highlight 2s ease-in-out infinite;
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+  }
 }
 
 .userbar {

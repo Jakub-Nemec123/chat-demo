@@ -47,10 +47,13 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue';
 import { AppVisibility } from 'quasar';
 import { Notify } from 'quasar';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useInterface } from 'src/stores/interface';
+import { useChannelsStore } from 'src/stores/channels';
+import { wsService } from 'src/services/websocket';
 
 import type {
   RouteComponent,
@@ -65,6 +68,73 @@ definePage({
   name: false,
 });
 
+const appInterface = useInterface();
+const channelsStore = useChannelsStore();
+const route: RouteLocation = useRoute();
+const router = useRouter();
+
+// Initialize WebSocket and register channel event handlers
+onMounted(() => {
+  console.log('[Workspace] Initializing WebSocket connection')
+  wsService.connect()
+
+  // Handle channel invite
+  wsService.onChannelInvited((data) => {
+    console.log('[Workspace] Received channel invite:', data)
+    channelsStore.handleChannelInvite(data)
+
+    // Show notification
+    Notify.create({
+      type: 'info',
+      message: `${data.invitedBy.username} invited you to #${data.channel.name}`,
+      actions: [
+        {
+          label: 'Open',
+          color: 'white',
+          handler: () => {
+            router.push(`/channels/${data.channel.name}`)
+          }
+        }
+      ],
+      timeout: 5000,
+    })
+  })
+
+  // Handle channel kicked
+  wsService.onChannelKicked((data) => {
+    console.log('[Workspace] Kicked from channel:', data)
+    channelsStore.handleChannelKicked(data)
+
+    Notify.create({
+      type: 'warning',
+      message: `You have been removed from #${data.channelName}`,
+      timeout: 5000,
+    })
+
+    // If currently viewing that channel, redirect
+    if (route.params.channel === data.channelName) {
+      router.push('/channels')
+    }
+  })
+
+  // Handle channel deleted
+  wsService.onChannelDeleted((data) => {
+    console.log('[Workspace] Channel deleted:', data)
+    channelsStore.removeChannel(data.channelId)
+
+    Notify.create({
+      type: 'warning',
+      message: 'Channel has been deleted',
+      timeout: 3000,
+    })
+  })
+})
+
+onUnmounted(() => {
+  console.log('[Workspace] Disconnecting WebSocket')
+  wsService.disconnect()
+})
+
 function Notification(){
   if (!AppVisibility.appVisible){
     Notify.create("Test notif")
@@ -72,9 +142,6 @@ function Notification(){
 }
 
 Notification()
-
-const appInterface = useInterface();
-const route: RouteLocation = useRoute();
 
 function get(view: string): RouteComponent | undefined {
   if (!view) return undefined;

@@ -29,6 +29,7 @@ class WebSocketService {
 
   // Reactive state
   public isConnected: Ref<boolean> = ref(false)
+  public isAuthenticated: Ref<boolean> = ref(false)
   public typingUsers: Ref<TypingUser[]> = ref([])
 
   // Event callbacks
@@ -36,6 +37,8 @@ class WebSocketService {
   private onUserJoinedCallback: ((data: { channelId: number; user: { id: number; username: string } }) => void) | null = null
   private onUserLeftCallback: ((data: { channelId: number; userId: number }) => void) | null = null
   private onChannelDeletedCallback: ((data: { channelId: number }) => void) | null = null
+  private onChannelInvitedCallback: ((data: { channel: { id: number; name: string; privacy: string }; invitedBy: { id: number; username: string } }) => void) | null = null
+  private onChannelKickedCallback: ((data: { channelId: number; channelName: string }) => void) | null = null
 
   /**
    * Connect to WebSocket server
@@ -57,6 +60,9 @@ class WebSocketService {
       console.log('[WS Client] Connected:', this.socket?.id)
       this.isConnected.value = true
 
+      // Auto-authenticate after connection
+      this.authenticate()
+
       // Rejoin channel if we were in one
       if (this.currentChannelId) {
         console.log('[WS Client] Rejoining channel:', this.currentChannelId)
@@ -67,11 +73,18 @@ class WebSocketService {
     this.socket.on('disconnect', () => {
       console.log('[WS Client] Disconnected')
       this.isConnected.value = false
+      this.isAuthenticated.value = false
     })
 
     this.socket.on('connect_error', (error) => {
       console.error('[WS Client] Connection error:', error)
       this.isConnected.value = false
+    })
+
+    // Auth confirmation
+    this.socket.on('auth:success', (data: { userId: number }) => {
+      console.log('[WS Client] Authenticated as user:', data.userId)
+      this.isAuthenticated.value = true
     })
 
     // Confirmation of joining channel
@@ -127,9 +140,53 @@ class WebSocketService {
       }
     })
 
+    // Channel invite notification (user-specific)
+    this.socket.on('channel:invited', (data: { channel: { id: number; name: string; privacy: string }; invitedBy: { id: number; username: string } }) => {
+      console.log('[WS Client] Invited to channel:', data)
+      if (this.onChannelInvitedCallback) {
+        this.onChannelInvitedCallback(data)
+      }
+    })
+
+    // Channel kicked notification (user-specific)
+    this.socket.on('channel:kicked', (data: { channelId: number; channelName: string }) => {
+      console.log('[WS Client] Kicked from channel:', data)
+      if (this.onChannelKickedCallback) {
+        this.onChannelKickedCallback(data)
+      }
+    })
+
     this.socket.on('error', (error: { message: string }) => {
       console.error('[WS Client] Server error:', error.message)
     })
+  }
+
+  /**
+   * Authenticate user to join personal room
+   */
+  authenticate() {
+    if (!this.socket?.connected) {
+      console.warn('[WS Client] Not connected, cannot authenticate')
+      return
+    }
+
+    const tokenRaw = localStorage.getItem(TOKEN_KEY)
+    if (!tokenRaw) {
+      console.warn('[WS Client] No auth token found')
+      return
+    }
+
+    let token: string
+    try {
+      const tokenBundle = JSON.parse(tokenRaw)
+      token = tokenBundle.token
+    } catch {
+      console.error('[WS Client] Invalid token data')
+      return
+    }
+
+    console.log('[WS Client] Authenticating...')
+    this.socket.emit('auth:user', { token })
   }
 
   /**
@@ -240,6 +297,20 @@ class WebSocketService {
   }
 
   /**
+   * Register callback for channel invite
+   */
+  onChannelInvited(callback: (data: { channel: { id: number; name: string; privacy: string }; invitedBy: { id: number; username: string } }) => void) {
+    this.onChannelInvitedCallback = callback
+  }
+
+  /**
+   * Register callback for channel kicked
+   */
+  onChannelKicked(callback: (data: { channelId: number; channelName: string }) => void) {
+    this.onChannelKickedCallback = callback
+  }
+
+  /**
    * Get typing users for a channel
    */
   getTypingUsers(channelId: number): TypingUser[] {
@@ -249,4 +320,3 @@ class WebSocketService {
 
 // Export singleton instance
 export const wsService = new WebSocketService()
-

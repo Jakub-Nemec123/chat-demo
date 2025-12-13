@@ -1,6 +1,7 @@
 import { Server as SocketServer } from 'socket.io'
 import type { Server as HttpServer } from 'node:http'
 import db from '@adonisjs/lucid/services/db'
+import { createHash } from 'node:crypto'
 
 class Ws {
   io: SocketServer | null = null
@@ -90,6 +91,26 @@ class Ws {
         })
       })
 
+      // Join user-specific room for direct notifications
+      socket.on('auth:user', async (data: { token: string }) => {
+        try {
+          const userId = await this.verifyToken(data.token)
+          if (!userId) {
+            socket.emit('error', { message: 'Invalid token' })
+            return
+          }
+
+          const userRoom = `user:${userId}`
+          await socket.join(userRoom)
+          socket.data.userId = userId
+          console.log(`[WS] User ${userId} joined personal room ${userRoom}`)
+          socket.emit('auth:success', { userId })
+        } catch (error) {
+          console.error('[WS] Error authenticating user:', error)
+          socket.emit('error', { message: 'Authentication failed' })
+        }
+      })
+
       socket.on('disconnect', () => {
         console.log(`[WS] Client disconnected: ${socket.id}`)
       })
@@ -98,28 +119,79 @@ class Ws {
 
   /**
    * Verify auth token and return user ID
+   * AdonisJS access tokens format: "prefix_base64(id).secret"
+   * The hash stored in DB is SHA256 of the secret
    */
   private async verifyToken(token: string): Promise<number | null> {
     try {
-      console.log(`[WS] Verifying token: ${token.substring(0, 20)}...`)
+      console.log(`[WS] Verifying token: ${token.substring(0, 30)}...`)
 
-      // AdonisJS stores tokens with a prefix, the actual hash is after the prefix
-      // Token format from client: "chat_<randomstring>.<hash>"
-
-      // Get all valid tokens and check
-      const allTokens = await db.from('access_tokens').where('expires_at', '>', new Date())
-
-      console.log(`[WS] Found ${allTokens.length} valid tokens in database`)
-
-      // For simplicity in dev, just return the user from most recent token
-      // In production, you'd properly verify the token hash
-      if (allTokens.length > 0) {
-        const latestToken = allTokens[allTokens.length - 1]
-        console.log(`[WS] Using token for user: ${latestToken.tokenable_id}`)
-        return latestToken.tokenable_id
+      // AdonisJS token format: "chat_<base64_encoded_id>.<secret>"
+      if (!token.startsWith('chat_')) {
+        console.log('[WS] Token does not have correct prefix')
+        return null
       }
 
-      return null
+      // Remove prefix and split by dot
+      const tokenWithoutPrefix = token.slice(5) // Remove "chat_"
+      const dotIndex = tokenWithoutPrefix.indexOf('.')
+
+      if (dotIndex === -1) {
+        console.log('[WS] Invalid token format - no dot separator')
+        return null
+      }
+
+      const encodedId = tokenWithoutPrefix.substring(0, dotIndex)
+      const secret = tokenWithoutPrefix.substring(dotIndex + 1)
+
+      if (!encodedId || !secret) {
+        console.log('[WS] Invalid token format - missing parts')
+        return null
+      }
+
+      // Decode the base64 ID
+      let tokenId: number
+      try {
+        const decodedId = Buffer.from(encodedId, 'base64').toString('utf-8')
+        tokenId = parseInt(decodedId, 10)
+        if (isNaN(tokenId)) {
+          console.log('[WS] Invalid token ID - not a number')
+          return null
+        }
+      } catch {
+        console.log('[WS] Failed to decode token ID')
+        return null
+      }
+
+      console.log(`[WS] Looking for token with ID: ${tokenId}`)
+
+      // Find the token in database
+      const dbToken = await db
+        .from('access_tokens')
+        .where('id', tokenId)
+        .where('expires_at', '>', new Date())
+        .first()
+
+      if (!dbToken) {
+        console.log('[WS] Token not found or expired')
+        return null
+      }
+
+      // AdonisJS stores SHA256 hash of the decoded secret (secret is base64 encoded)
+      const decodedSecret = Buffer.from(secret, 'base64').toString('utf-8')
+      const secretHash = createHash('sha256').update(decodedSecret).digest('hex')
+
+      console.log(`[WS] Comparing hashes:`)
+      console.log(`[WS]   DB hash: ${dbToken.hash}`)
+      console.log(`[WS]   Computed: ${secretHash}`)
+
+      if (secretHash !== dbToken.hash) {
+        console.log('[WS] Token hash mismatch')
+        return null
+      }
+
+      console.log(`[WS] Token verified for user: ${dbToken.tokenable_id}`)
+      return dbToken.tokenable_id
     } catch (error) {
       console.error('[WS] Token verification error:', error)
       return null
@@ -191,6 +263,46 @@ class Ws {
 
     const roomName = `channel:${channelId}`
     this.io.to(roomName).emit('channel:deleted', { channelId })
+  }
+
+  /**
+   * Notify user when they are invited to a channel
+   */
+  broadcastChannelInvite(
+    userId: number,
+    channel: {
+      id: number
+      name: string
+      privacy: string
+      invitedBy: {
+        id: number
+        username: string
+      }
+    }
+  ) {
+    if (!this.io) return
+
+    const userRoom = `user:${userId}`
+    console.log(`[WS] Broadcasting channel invite to ${userRoom}`, channel)
+    this.io.to(userRoom).emit('channel:invited', {
+      channel: {
+        id: channel.id,
+        name: channel.name,
+        privacy: channel.privacy,
+      },
+      invitedBy: channel.invitedBy,
+    })
+  }
+
+  /**
+   * Notify user when they are kicked/removed from a channel
+   */
+  broadcastChannelKicked(userId: number, channelId: number, channelName: string) {
+    if (!this.io) return
+
+    const userRoom = `user:${userId}`
+    console.log(`[WS] Broadcasting channel kick to ${userRoom}`)
+    this.io.to(userRoom).emit('channel:kicked', { channelId, channelName })
   }
 }
 

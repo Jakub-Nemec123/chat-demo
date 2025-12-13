@@ -6,6 +6,7 @@ import db from '@adonisjs/lucid/services/db'
 import { createChannelValidator, inviteUserValidator } from '#validators/channel'
 import { ChannelAlerts } from '#contracts/channel_alerts'
 import { ChannelPrivacy } from '#contracts/channel_privacy'
+import Ws from '#services/ws'
 
 export default class ChannelsController {
   /**
@@ -338,6 +339,20 @@ export default class ChannelsController {
       updated_at: new Date(),
     })
 
+    // Get inviter info for notification
+    const inviter = await User.findOrFail(userId)
+
+    // Notify invited user via WebSocket
+    Ws.broadcastChannelInvite(userToInvite.id, {
+      id: channel.id,
+      name: channel.slug,
+      privacy: channel.privacy,
+      invitedBy: {
+        id: inviter.id,
+        username: inviter.username,
+      },
+    })
+
     return response.ok({
       message: `${payload.username} has been invited`,
       userId: userToInvite.id,
@@ -400,6 +415,9 @@ export default class ChannelsController {
         })
       }
 
+      // Notify kicked user via WebSocket
+      Ws.broadcastChannelKicked(userToKick.id, channelId, channel.slug)
+
       return response.ok({
         message: `${payload.username} has been permanently kicked`,
         permanent: true,
@@ -443,6 +461,9 @@ export default class ChannelsController {
         .where('channel_id', channelId)
         .where('user_id', userToKick.id)
         .delete()
+
+      // Notify kicked user via WebSocket
+      Ws.broadcastChannelKicked(userToKick.id, channelId, channel.slug)
 
       return response.ok({
         message: `${payload.username} has been kicked (3 votes reached)`,

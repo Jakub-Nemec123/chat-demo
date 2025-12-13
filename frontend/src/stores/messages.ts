@@ -28,19 +28,19 @@ export interface PaginationMeta {
 }
 
 export const useMessagesStore = defineStore('messages', () => {
-  // State - messages per channel
-  const messagesByChannel = ref<Map<number, Message[]>>(new Map())
-  const paginationByChannel = ref<Map<number, PaginationMeta>>(new Map())
+  // State - messages per channel (using Record instead of Map for better Vue reactivity)
+  const messagesByChannel = ref<Record<number, Message[]>>({})
+  const paginationByChannel = ref<Record<number, PaginationMeta>>({})
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
   // Get messages for specific channel
   function getMessages(channelId: number): Message[] {
-    return messagesByChannel.value.get(channelId) || []
+    return messagesByChannel.value[channelId] || []
   }
 
   function getPagination(channelId: number): PaginationMeta | null {
-    return paginationByChannel.value.get(channelId) || null
+    return paginationByChannel.value[channelId] || null
   }
 
   function hasMoreMessages(channelId: number): boolean {
@@ -80,29 +80,27 @@ export const useMessagesStore = defineStore('messages', () => {
       // Reverse to get chronological order (API returns newest first)
       messages.reverse()
 
-      const currentMessages = messagesByChannel.value.get(channelId) || []
+      const currentMessages = messagesByChannel.value[channelId] || []
 
-      // Create new Map to trigger Vue reactivity
-      const newMessagesMap = new Map(messagesByChannel.value)
       if (page === 1) {
         // First page - replace messages
-        newMessagesMap.set(channelId, messages)
+        messagesByChannel.value = { ...messagesByChannel.value, [channelId]: messages }
       } else {
         // Subsequent pages - prepend older messages
-        newMessagesMap.set(channelId, [...messages, ...currentMessages])
+        messagesByChannel.value = { ...messagesByChannel.value, [channelId]: [...messages, ...currentMessages] }
       }
-      messagesByChannel.value = newMessagesMap
 
-      // Update pagination - create new Map to trigger reactivity
-      const newPaginationMap = new Map(paginationByChannel.value)
-      newPaginationMap.set(channelId, {
-        total: meta.total,
-        perPage: meta.per_page,
-        currentPage: meta.current_page,
-        lastPage: meta.last_page,
-        firstPage: meta.first_page,
-      })
-      paginationByChannel.value = newPaginationMap
+      // Update pagination
+      paginationByChannel.value = {
+        ...paginationByChannel.value,
+        [channelId]: {
+          total: meta.total,
+          perPage: meta.per_page,
+          currentPage: meta.current_page,
+          lastPage: meta.last_page,
+          firstPage: meta.first_page,
+        }
+      }
 
       return messages
     } catch (e: any) {
@@ -153,31 +151,30 @@ export const useMessagesStore = defineStore('messages', () => {
 
   // For WebSocket/real-time updates
   function addMessage(message: Message) {
-    const channelMessages = messagesByChannel.value.get(message.channelId) || []
+    const channelMessages = messagesByChannel.value[message.channelId] || []
 
     // Check if message already exists
     const exists = channelMessages.find(m => m.id === message.id)
     if (!exists) {
-      // Create new Map to trigger Vue reactivity
-      const newMap = new Map(messagesByChannel.value)
-      newMap.set(message.channelId, [...channelMessages, message])
-      messagesByChannel.value = newMap
+      // Create new object to trigger Vue reactivity
+      messagesByChannel.value = {
+        ...messagesByChannel.value,
+        [message.channelId]: [...channelMessages, message]
+      }
     }
   }
 
   function clearChannelMessages(channelId: number) {
-    const newMessagesMap = new Map(messagesByChannel.value)
-    newMessagesMap.delete(channelId)
-    messagesByChannel.value = newMessagesMap
+    const { [channelId]: _, ...restMessages } = messagesByChannel.value
+    messagesByChannel.value = restMessages
 
-    const newPaginationMap = new Map(paginationByChannel.value)
-    newPaginationMap.delete(channelId)
-    paginationByChannel.value = newPaginationMap
+    const { [channelId]: __, ...restPagination } = paginationByChannel.value
+    paginationByChannel.value = restPagination
   }
 
   function clearAllMessages() {
-    messagesByChannel.value = new Map()
-    paginationByChannel.value = new Map()
+    messagesByChannel.value = {}
+    paginationByChannel.value = {}
   }
 
   return {

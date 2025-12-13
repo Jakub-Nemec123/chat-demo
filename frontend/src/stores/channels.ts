@@ -13,6 +13,8 @@ export interface ChannelFromAPI {
   isAdmin: boolean
   alerts: 'ALL' | 'MENTIONS' | 'NONE'
   joinedAt: string
+  isHighlighted?: boolean
+  invitedBy?: string
 }
 
 export interface ChannelMember {
@@ -30,6 +32,7 @@ export const useChannelsStore = defineStore('channels', () => {
   // State
   const channels = ref<ChannelFromAPI[]>([])
   const activeChannelId = ref<number | null>(null)
+  const highlightedChannelIds = ref<Set<number>>(new Set())
   const members = ref<ChannelMember[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
@@ -39,10 +42,18 @@ export const useChannelsStore = defineStore('channels', () => {
     channels.value.find(c => c.id === activeChannelId.value) || null
   )
 
+  // Sorted channels - highlighted first, then by activity
   const sortedChannels = computed(() =>
-    [...channels.value].sort((a, b) =>
-      new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime()
-    )
+    [...channels.value].sort((a, b) => {
+      // Highlighted channels first
+      const aHighlighted = highlightedChannelIds.value.has(a.id) ? 1 : 0
+      const bHighlighted = highlightedChannelIds.value.has(b.id) ? 1 : 0
+      if (bHighlighted !== aHighlighted) {
+        return bHighlighted - aHighlighted
+      }
+      // Then by activity
+      return new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime()
+    })
   )
 
   const isActiveChannelAdmin = computed(() =>
@@ -236,10 +247,54 @@ export const useChannelsStore = defineStore('channels', () => {
     }
   }
 
+  // Handle WebSocket channel invite
+  function handleChannelInvite(data: { channel: { id: number; name: string; privacy: string }; invitedBy: { id: number; username: string } }) {
+    const exists = channels.value.find(c => c.id === data.channel.id)
+    if (!exists) {
+      const newChannel: ChannelFromAPI = {
+        id: data.channel.id,
+        name: data.channel.name,
+        privacy: data.channel.privacy as 'PUBLIC' | 'PRIVATE',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastActivityAt: new Date().toISOString(),
+        isAdmin: false,
+        alerts: 'ALL',
+        joinedAt: new Date().toISOString(),
+        isHighlighted: true,
+        invitedBy: data.invitedBy.username,
+      }
+      channels.value.unshift(newChannel)
+      highlightedChannelIds.value.add(data.channel.id)
+    }
+  }
+
+  // Handle WebSocket channel kicked
+  function handleChannelKicked(data: { channelId: number; channelName: string }) {
+    removeChannel(data.channelId)
+    highlightedChannelIds.value.delete(data.channelId)
+  }
+
+  // Clear highlight when user opens the channel
+  function clearHighlight(channelId: number) {
+    highlightedChannelIds.value.delete(channelId)
+    const channel = channels.value.find(c => c.id === channelId)
+    if (channel) {
+      channel.isHighlighted = false
+      channel.invitedBy = undefined
+    }
+  }
+
+  // Check if channel is highlighted
+  function isChannelHighlighted(channelId: number): boolean {
+    return highlightedChannelIds.value.has(channelId)
+  }
+
   return {
     // State
     channels,
     activeChannelId,
+    highlightedChannelIds,
     members,
     isLoading,
     error,
@@ -262,6 +317,10 @@ export const useChannelsStore = defineStore('channels', () => {
     addChannel,
     removeChannel,
     updateChannelActivity,
+    handleChannelInvite,
+    handleChannelKicked,
+    clearHighlight,
+    isChannelHighlighted,
   }
 })
 
