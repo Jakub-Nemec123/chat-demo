@@ -15,7 +15,13 @@ export interface NewUserData {
 }
 
 export interface TokenData {
-  type: 'bearer';
   token: string;
-  expiresAt: string; // TODO: datetime
+  expiresAt: string;
+  user: {
+    id: number;
+    username: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+  };
 }

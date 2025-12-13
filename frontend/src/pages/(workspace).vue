@@ -88,9 +88,16 @@ async function requestNotificationPermission() {
 // Check if message mentions current user
 function isMentioned(content: string): boolean {
   const username = auth.state.currentUser?.username;
+  console.log('[Notification] Checking mention:', {
+    content,
+    username,
+    currentUser: auth.state.currentUser,
+  });
   if (!username) return false;
   const mentionRegex = new RegExp(`@${username}\\b`, 'i');
-  return mentionRegex.test(content);
+  const result = mentionRegex.test(content);
+  console.log('[Notification] Mention result:', result, 'regex:', mentionRegex.toString());
+  return result;
 }
 
 // Show browser notification for new message
@@ -124,11 +131,19 @@ function showMessageNotification(message: WsMessage) {
   }
 
   // Get channel to check alert settings
-  const channel = channelsStore.channels.find(c => c.id === message.channelId);
+  const msgChannelId = Number(message.channelId);
+  const channel = channelsStore.channels.find(c => c.id === msgChannelId);
 
   // If channel not in store yet, show notification anyway (default behavior)
-  const channelName = channel?.name || `channel-${message.channelId}`;
+  const channelName = channel?.name || `channel-${msgChannelId}`;
   const channelAlerts = channel?.alerts || 'ALL';
+
+  console.log('[Notification] Channel alerts check:', {
+    channelId: msgChannelId,
+    channelName,
+    channelAlerts,
+    channelFound: !!channel,
+  });
 
   // Check channel alert settings
   if (channelAlerts === 'NONE') {

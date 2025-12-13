@@ -63,18 +63,18 @@ async function ensurePasswordHashExists(defaultPlain = 'test'){
 
 async function createNewUser(newUser: NewUserData) {
   try {
-    const token: TokenData = await authService.getNewUserToken(newUser)
+    const response = await authService.getNewUserToken(newUser)
     const user: User = {
-      id: crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
-      name: 'Test Name',
-      username: 'Test username',
-      email: 'test@example.com',
+      id: response.user.id,
+      name: `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim() || response.user.username,
+      username: response.user.username,
+      email: response.user.email,
       currentState: UserStates.online
     }
 
     state.currentUser = user
-    state.token = token.token
-    state.expiresAt = Date.parse(token.expiresAt)
+    state.token = response.token
+    state.expiresAt = Date.parse(response.expiresAt)
 
     localStorage.setItem(USER_KEY, JSON.stringify(user))
     localStorage.setItem(TOKEN_KEY, JSON.stringify({
@@ -96,20 +96,20 @@ async function createNewUser(newUser: NewUserData) {
 
 async function loginWithCredentials(email: string, password: string) {
   try {
-    const token: TokenData = await authService.getToken({ email, password });
-    console.debug('got token', token);
+    const response = await authService.getToken({ email, password });
+    console.debug('got token', response);
 
     const user: User = {
-      id: crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
-      name: 'Test Name',
-      username: 'Test username',
-      email: 'test@example.com',
+      id: response.user.id,
+      name: `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim() || response.user.username,
+      username: response.user.username,
+      email: response.user.email,
       currentState: UserStates.online
     }
 
     state.currentUser = user
-    state.token = token.token
-    state.expiresAt = Date.parse(token.expiresAt)
+    state.token = response.token
+    state.expiresAt = Date.parse(response.expiresAt)
 
     localStorage.setItem(USER_KEY, JSON.stringify(user))
     localStorage.setItem(TOKEN_KEY, JSON.stringify({

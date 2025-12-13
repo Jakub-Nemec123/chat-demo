@@ -4,7 +4,7 @@ import { AccessToken } from '@adonisjs/auth/access_tokens'
 import { createUserValidator } from '#validators/user'
 
 export default class UsersController {
-  async store({ request }: HttpContext): Promise<AccessToken> {
+  async store({ request, response }: HttpContext) {
     // TODO: convert into factory
     const payload = await createUserValidator.validate(request.all())
     const user: User = await User.create({
@@ -16,6 +16,17 @@ export default class UsersController {
     })
 
     const token: AccessToken = await User.accessTokens.create(user)
-    return token
+
+    return response.created({
+      token: token.toJSON().token,
+      expiresAt: token.toJSON().expiresAt,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+      }
+    })
   }
 }
