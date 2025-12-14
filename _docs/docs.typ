@@ -18,6 +18,7 @@ Dodatočné zmeny:
 === Návrhové rozhodnutia
 - Argon2 je odporúčaný algoritmus pre hashovanie hesiel aj od vývojarov Adonis.js: https://docs.adonisjs.com/guides/security/hashing#argon
 - Frontend: Používa sa balík `unplugin-vue-router` pre typovanie samotných routov v SPA, na základe toho sa používa file-based routing
+- Frontend: Pouzivame `@vueuse` balíky pre jednoduchšiu prácu s Vue komponentami, a aj aby sme nemuseli alokovať zdroje na opätovnú implementáciu niektorých veci. To, čo ponúka rámec Quasar, nie je vždy reaktívne.
 
 === Screenshoty
 
