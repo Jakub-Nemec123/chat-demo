@@ -351,7 +351,7 @@ async function onChangePassword() {
   try {
     savingPassword.value = true
 
-    await auth.changePassword(pwd.current, pwd.next)
+    await auth.changePassword(pwd.next, pwd.confirm)
     pwd.current = ''
     pwd.next = ''
     pwd.confirm = ''

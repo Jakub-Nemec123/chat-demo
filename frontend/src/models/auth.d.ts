@@ -14,14 +14,21 @@ export interface NewUserData {
   passwordRepeat: string;
 }
 
+export interface PassData {
+  password: string;
+  passwordRepeat: string;
+}
+
 export interface TokenData {
   token: string;
   expiresAt: string;
-  user: {
-    id: number;
-    username: string;
-    email: string;
-    firstName: string | null;
-    lastName: string | null;
-  };
+  user: UserData;
+}
+
+export interface UserData {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
 }

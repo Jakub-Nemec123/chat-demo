@@ -1,7 +1,7 @@
 import User from '#models/user'
 import { HttpContext } from '@adonisjs/core/http'
 import { AccessToken } from '@adonisjs/auth/access_tokens'
-import { createUserValidator } from '#validators/user'
+import { createUserValidator, updateUserValidator } from '#validators/user'
 
 export default class UsersController {
   async store({ request, response }: HttpContext) {
@@ -9,8 +9,8 @@ export default class UsersController {
     const payload = await createUserValidator.validate(request.all())
     const user: User = await User.create({
       email: payload.email,
-      first_name: payload.name.first,
-      last_name: payload.name.last,
+      firstName: payload.name.first,
+      lastName: payload.name.last,
       password: payload.password,
       username: payload.username,
     })
@@ -19,14 +19,21 @@ export default class UsersController {
 
     return response.created({
       token: token.toJSON().token,
-      expiresAt: token.toJSON().expiresAt,
+      expiresAt: token.expiresAt,
       user: {
         id: user.id,
         username: user.username,
         email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-      }
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
     })
+  }
+  async update({ auth, request, response }: HttpContext) {
+    const user: User = auth.getUserOrFail()
+    const payload = await updateUserValidator.validate(request.all())
+    const newUser: User = await user.fill(payload).save()
+
+    return response.ok(newUser)
   }
 }

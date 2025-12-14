@@ -16,6 +16,10 @@ router.group(() => {
 // Protected routes (auth required)
 router
   .group(() => {
+    // User change
+    router.put('users/me', [UsersController, 'update'])
+    router.patch('users/me', [UsersController, 'update'])
+
     // User status
     router.get('status', [StatusController, 'show'])
     router.put('status', [StatusController, 'update'])

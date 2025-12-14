@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs'
 import type { User } from 'src/models'
 import { UserStates } from 'src/models'
 import authService from 'src/services/auth'
-import type { NewUserData, TokenData } from 'src/models/auth'
+import type { NewUserData } from 'src/models/auth'
 import { Notify } from 'quasar'
 import { AxiosError } from 'axios'
 
@@ -65,7 +65,7 @@ async function createNewUser(newUser: NewUserData) {
   try {
     const response = await authService.getNewUserToken(newUser)
     const user: User = {
-      id: response.user.id,
+      id: response.user.id.toString(),
       name: `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim() || response.user.username,
       username: response.user.username,
       email: response.user.email,
@@ -100,7 +100,7 @@ async function loginWithCredentials(email: string, password: string) {
     console.debug('got token', response);
 
     const user: User = {
-      id: response.user.id,
+      id: response.user.id.toString(),
       name: `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim() || response.user.username,
       username: response.user.username,
       email: response.user.email,
@@ -156,16 +156,9 @@ function setPresence(nextState: UserStates){
   return next
 }
 
-async function changePassword(currentPlain: string, newPlain: string){
-  const hash = localStorage.getItem(PASSHASH_KEY)
-  if (!hash) throw new Error ('Password hash not set')
-
-  const ok = await bcrypt.compare(currentPlain, hash)
-  if (!ok) throw new Error('Actual password doesnt match')
-
-  const nextHash = await bcrypt.hash(newPlain, 12)
-  localStorage.setItem(PASSHASH_KEY, nextHash)
-
+async function changePassword(password: string, passwordRepeat: string) {
+  await authService.updatePassword({ password, passwordRepeat })
+  // TODO: handle errors
   return true
 }
 
