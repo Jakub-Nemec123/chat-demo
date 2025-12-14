@@ -9,6 +9,9 @@ export default class UserStatus extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
 
+  @column()
+  declare userId: number
+
   @belongsTo(() => User)
   declare user: BelongsTo<typeof User>
 

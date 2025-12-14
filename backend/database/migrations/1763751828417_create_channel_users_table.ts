@@ -29,6 +29,6 @@ export default class extends BaseSchema {
 
   async down() {
     this.schema.dropTable(this.tableName)
-    this.schema.raw('DROP TYPE channel_user_alerts')
+    this.schema.raw('DROP TYPE IF EXISTS channel_user_alerts CASCADE')
   }
 }

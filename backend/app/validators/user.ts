@@ -7,7 +7,9 @@ export const createUserValidator = vine.compile(
       first: vine.string().trim(),
       last: vine.string().trim().optional(),
     }),
-    password: vine.string().trim(),
+    password: vine.string().trim().confirmed({
+      confirmationField: 'passwordRepeat',
+    }),
     username: vine
       .string()
       .alphaNumeric({

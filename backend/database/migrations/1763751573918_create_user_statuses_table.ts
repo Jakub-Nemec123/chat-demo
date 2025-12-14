@@ -9,8 +9,8 @@ export default class extends BaseSchema {
       const now = this.raw('CURRENT_TIMESTAMP')
 
       table.increments('id')
-      table.integer('user_id').references('users.id').onUpdate('CASCADE').onDelete('CASCADE')
-      table.text('message').notNullable()
+      table.integer('user_id').notNullable().references('users.id').onUpdate('CASCADE').onDelete('CASCADE')
+      table.text('message').notNullable().defaultTo('')
       table
         .enu('state', Object.values(StatusIndicator), {
           enumName: 'status_indicator',
@@ -18,6 +18,7 @@ export default class extends BaseSchema {
           useNative: true,
         })
         .notNullable()
+        .defaultTo(StatusIndicator.ONLINE)
       table.timestamp('created_at').notNullable().defaultTo(now)
       table.timestamp('updated_at').notNullable().defaultTo(now)
       table.timestamp('expires_at').nullable()
@@ -26,6 +27,7 @@ export default class extends BaseSchema {
 
   async down() {
     this.schema.dropTable(this.tableName)
-    this.schema.raw('DROP TYPE user_status')
+    this.schema.raw('DROP TYPE IF EXISTS status_indicator')
   }
 }
+

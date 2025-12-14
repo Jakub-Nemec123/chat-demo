@@ -9,10 +9,20 @@ export default class Message extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
 
-  @belongsTo(() => User)
+  @column()
+  declare userId: number
+
+  @column()
+  declare channelId: number
+
+  @belongsTo(() => User, {
+    foreignKey: 'userId',
+  })
   declare user: BelongsTo<typeof User>
 
-  @belongsTo(() => Channel)
+  @belongsTo(() => Channel, {
+    foreignKey: 'channelId',
+  })
   declare channel: BelongsTo<typeof Channel>
 
   @column()

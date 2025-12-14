@@ -2,14 +2,23 @@ import { defineStore, acceptHMRUpdate } from 'pinia';
 
 export const useInterface = defineStore('interface', {
   actions: {
+    setSidebar(side: 'left' | 'right', value: boolean) {
+      this.sidebar[side] = value;
+    },
+    toggleSidebar(side: 'left' | 'right'): void {
+      this.sidebar[side] = !this.sidebar[side];
+    },
     openRightSidebar(): void {
       this.sidebar.right = true;
     },
-    setRightSidebar(value: boolean) {
-      this.sidebar.right = value;
+    closeRightSidebar(): void {
+      this.sidebar.right = false;
     },
-    toggleRightSidebar(): void {
-      this.sidebar.right = !this.sidebar.right;
+    openLeftSidebar(): void {
+      this.sidebar.left = true;
+    },
+    closeLeftSidebar(): void {
+      this.sidebar.left = false;
     }
   },
   state: () => ({

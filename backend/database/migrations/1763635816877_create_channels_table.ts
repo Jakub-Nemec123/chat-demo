@@ -24,6 +24,6 @@ export default class extends BaseSchema {
 
   async down() {
     this.schema.dropTable(this.tableName)
-    this.schema.raw('DROP TYPE channel_privacy')
+    this.schema.raw('DROP TYPE IF EXISTS channel_privacy CASCADE')
   }
 }
