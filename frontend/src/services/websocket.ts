@@ -59,6 +59,7 @@ class WebSocketService {
     }
 
     console.log('[WS Client] Connecting to server...')
+    console.log('[WS Client] Message callbacks registered:', this.onMessageCallbacks.length)
 
     this.socket = io('http://127.0.0.1:3333', {
       transports: ['websocket', 'polling'],
@@ -70,6 +71,7 @@ class WebSocketService {
 
     this.socket.on('connect', () => {
       console.log('[WS Client] Connected:', this.socket?.id)
+      console.log('[WS Client] Message callbacks after connect:', this.onMessageCallbacks.length)
       this.isConnected.value = true
 
       // Auto-authenticate after connection
