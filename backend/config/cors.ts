@@ -9,7 +9,7 @@ import { defineConfig } from '@adonisjs/cors'
 const corsConfig = defineConfig({
   enabled: true,
   // Allow requests from the frontend
-  origin: ['http://127.0.0.1:9000', 'http://localhost:9000'],
+  origin: ['http://127.0.0.1:9000', 'http://localhost:9000', 'http://127.0.0.1:9200', 'http://localhost:9200'],
   methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
   headers: true,
   exposeHeaders: [],
