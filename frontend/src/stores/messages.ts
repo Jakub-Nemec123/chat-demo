@@ -84,22 +84,22 @@ export const useMessagesStore = defineStore('messages', () => {
 
       if (page === 1) {
         // First page - replace messages
-        messagesByChannel.value = { ...messagesByChannel.value, [channelId]: messages }
+        messagesByChannel.value[channelId] = messages
       } else {
         // Subsequent pages - prepend older messages
-        messagesByChannel.value = { ...messagesByChannel.value, [channelId]: [...messages, ...currentMessages] }
+        messagesByChannel.value[channelId] = [
+          ...messages,
+          ...currentMessages
+        ]
       }
 
       // Update pagination
-      paginationByChannel.value = {
-        ...paginationByChannel.value,
-        [channelId]: {
-          total: meta.total,
-          perPage: meta.per_page,
-          currentPage: meta.current_page,
-          lastPage: meta.last_page,
-          firstPage: meta.first_page,
-        }
+      paginationByChannel.value[channelId] = {
+        total: meta.total,
+        perPage: meta.perPage,
+        currentPage: meta.currentPage,
+        lastPage: meta.lastPage,
+        firstPage: meta.firstPage,
       }
 
       return messages
@@ -165,11 +165,8 @@ export const useMessagesStore = defineStore('messages', () => {
   }
 
   function clearChannelMessages(channelId: number) {
-    const { [channelId]: _, ...restMessages } = messagesByChannel.value
-    messagesByChannel.value = restMessages
-
-    const { [channelId]: __, ...restPagination } = paginationByChannel.value
-    paginationByChannel.value = restPagination
+    delete messagesByChannel.value[channelId]
+    delete paginationByChannel.value[channelId]
   }
 
   function clearAllMessages() {
@@ -180,6 +177,7 @@ export const useMessagesStore = defineStore('messages', () => {
   return {
     // State
     messagesByChannel,
+    paginationByChannel,
     isLoading,
     error,
     // Getters

@@ -4,7 +4,7 @@
     <div class="col-grow column reverse q-px-md scroll-vertical">
       <q-infinite-scroll
         reverse
-        :offset="500"
+        :offset="200"
         :disable="!hasMore"
         @load="onLoadMore"
       >
