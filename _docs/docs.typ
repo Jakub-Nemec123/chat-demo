@@ -21,4 +21,8 @@ Dodatočné zmeny:
 
 === Screenshoty
 
-(pridať 5 screenshotov)
+#image("screen-04.png")
+#image("screen-05.png")
+#image("screen-01.png")
+#image("screen-02.png")
+#image("screen-03.png")

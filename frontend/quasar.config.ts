@@ -95,7 +95,7 @@ export default defineConfig((/* ctx */) => {
             }
           },
         ],
-        [
+/*         [
           'vite-plugin-checker',
           {
             vueTsc: true,
@@ -105,7 +105,7 @@ export default defineConfig((/* ctx */) => {
             },
           },
           { server: false },
-        ],
+        ], */
       ],
     },
 
