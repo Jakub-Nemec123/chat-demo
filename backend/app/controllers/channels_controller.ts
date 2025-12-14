@@ -7,13 +7,55 @@ import { createChannelValidator, inviteUserValidator } from '#validators/channel
 import { ChannelAlerts } from '#contracts/channel_alerts'
 import { ChannelPrivacy } from '#contracts/channel_privacy'
 import Ws from '#services/ws'
+import { DateTime } from 'luxon'
 
 export default class ChannelsController {
+  /**
+   * Clean up channels inactive for more than 30 days
+   */
+  private async cleanupInactiveChannels() {
+    const thirtyDaysAgo = DateTime.now().minus({ days: 30 }).toSQL()
+
+    // Find channels with no messages in 30 days
+    const inactiveChannels = await Channel.query()
+      .whereNotExists((query) => {
+        query
+          .from('messages')
+          .whereRaw('messages.channel_id = channels.id')
+          .where('messages.created_at', '>', thirtyDaysAgo!)
+      })
+      .where('created_at', '<', thirtyDaysAgo!)
+
+    for (const channel of inactiveChannels) {
+      console.log(`[Cleanup] Deleting inactive channel: ${channel.slug} (id: ${channel.id})`)
+
+      // Delete messages
+      await Message.query().where('channel_id', channel.id).delete()
+
+      // Delete memberships
+      await db.from('channel_users').where('channel_id', channel.id).delete()
+
+      // Delete kicks
+      await db.from('channel_kicks').where('channel_id', channel.id).delete()
+
+      // Delete channel
+      await channel.delete()
+    }
+
+    if (inactiveChannels.length > 0) {
+      console.log(`[Cleanup] Deleted ${inactiveChannels.length} inactive channels`)
+    }
+  }
+
   /**
    * GET /channels
    * Returns all channels where the user is a member
    */
   async index({ auth, response }: HttpContext) {
+    // Run cleanup periodically (simple approach - on every fetch)
+    // In production, use a proper scheduler
+    await this.cleanupInactiveChannels()
+
     const userId = auth.getUserOrFail().id
 
     const channels = await Channel.query()

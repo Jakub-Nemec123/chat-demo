@@ -289,6 +289,7 @@ import { useAuth } from 'src/composables/useAuth'
 import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { useChannelsStore } from 'src/stores/channels'
 import { useUserStore, type UserStatus } from 'src/stores/user'
+import { wsService } from 'src/services/websocket'
 import { Notify } from 'quasar'
 
 const router = useRouter()
@@ -365,8 +366,27 @@ async function handleLogout() {
 
 // ============ USER STATUS ============
 async function setStatus(status: UserStatus) {
+  const previousStatus = userStore.currentStatus
+
   try {
     await userStore.updateStatus(status)
+
+    // Handle OFFLINE - disconnect from WebSocket
+    if (status === 'OFFLINE') {
+      wsService.disconnect()
+    }
+
+    // Handle coming back ONLINE from OFFLINE - reconnect and refresh
+    if (previousStatus === 'OFFLINE' && status !== 'OFFLINE') {
+      wsService.connect()
+      // Refresh channels and messages
+      await channelsStore.fetchChannels()
+      Notify.create({
+        type: 'info',
+        message: 'Channels refreshed'
+      })
+    }
+
     Notify.create({
       type: 'positive',
       message: `Status changed to ${userStore.statusLabel}`
