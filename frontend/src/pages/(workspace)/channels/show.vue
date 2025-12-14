@@ -164,8 +164,15 @@ const typingHeaderText = computed(() => {
   }
 })
 
-// Get username by userId
+// Get username by userId - first try from typing data, then from members
 function getUserName(userId: number): string {
+  // First check if we have username from typing event
+  const typingUser = typingUsers.value.find(u => u.userId === userId)
+  if (typingUser?.username) {
+    return typingUser.username
+  }
+
+  // Fallback to members list
   const member = channelsStore.members.find(m => m.id === userId)
   return member?.username || `User ${userId}`
 }
@@ -227,6 +234,10 @@ async function onLoadMore(index: number, done: () => void) {
 
   try {
     console.log('[InfiniteScroll] Loading more messages...')
+
+    // delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
     await messagesStore.loadMoreMessages(channelId.value)
     console.log('[InfiniteScroll] Loaded successfully')
   } catch (error) {

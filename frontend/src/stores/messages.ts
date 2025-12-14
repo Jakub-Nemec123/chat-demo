@@ -80,27 +80,34 @@ export const useMessagesStore = defineStore('messages', () => {
       // Reverse to get chronological order (API returns newest first)
       messages.reverse()
 
-      const currentMessages = messagesByChannel.value[channelId] || []
-
       if (page === 1) {
         // First page - replace messages
-        messagesByChannel.value[channelId] = messages
+        messagesByChannel.value = {
+          ...messagesByChannel.value,
+          [channelId]: messages
+        }
       } else {
         // Subsequent pages - prepend older messages
-        messagesByChannel.value[channelId] = [
-          ...messages,
-          ...currentMessages
-        ]
+        const currentMessages = messagesByChannel.value[channelId] || []
+        messagesByChannel.value = {
+          ...messagesByChannel.value,
+          [channelId]: [...messages, ...currentMessages]
+        }
       }
 
       // Update pagination
-      paginationByChannel.value[channelId] = {
-        total: meta.total,
-        perPage: meta.perPage,
-        currentPage: meta.currentPage,
-        lastPage: meta.lastPage,
-        firstPage: meta.firstPage,
+      paginationByChannel.value = {
+        ...paginationByChannel.value,
+        [channelId]: {
+          total: meta.total,
+          perPage: meta.perPage || meta.per_page,
+          currentPage: meta.currentPage || meta.current_page,
+          lastPage: meta.lastPage || meta.last_page,
+          firstPage: meta.firstPage || meta.first_page,
+        }
       }
+
+      console.log('[Messages] Fetched page', page, 'pagination:', paginationByChannel.value[channelId])
 
       return messages
     } catch (e: any) {

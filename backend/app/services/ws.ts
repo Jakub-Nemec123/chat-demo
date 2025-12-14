@@ -79,6 +79,7 @@ class Ws {
         const roomName = `channel:${data.channelId}`
         socket.to(roomName).emit('user:typing', {
           userId: socket.data.userId,
+          username: socket.data.username,
           channelId: data.channelId,
           content: data.content,
         })
@@ -101,10 +102,14 @@ class Ws {
             return
           }
 
+          // Get username from database
+          const user = await db.from('users').where('id', userId).select('username').first()
+
           const userRoom = `user:${userId}`
           await socket.join(userRoom)
           socket.data.userId = userId
-          console.log(`[WS] User ${userId} joined personal room ${userRoom}`)
+          socket.data.username = user?.username || `User ${userId}`
+          console.log(`[WS] User ${userId} (${socket.data.username}) joined personal room ${userRoom}`)
           socket.emit('auth:success', { userId })
         } catch (error) {
           console.error('[WS] Error authenticating user:', error)
